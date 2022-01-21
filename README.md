@@ -6,4 +6,4 @@
 3. Open a pull request to this repo from your forked repo.
 
 ### Links
-1. Signup sheet: TBA
+1. Signup sheet: https://docs.google.com/spreadsheets/d/1Axvj5UkEa6QmNU30IGh26dO4sRqB5E2gJE7PxyVA9DM/edit
