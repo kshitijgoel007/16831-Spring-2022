@@ -1,0 +1,371 @@
+\documentclass[11pt]{article}
+\usepackage{latexsym}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{epsfig}
+\usepackage[tight]{subfigure}
+
+\usepackage{amsmath}
+
+\DeclareMathOperator*{\minimize}{min}
+\DeclareMathOperator*{\maximize}{max}
+
+\usepackage{algorithm}
+ %on linux you may need to run sudo apt-get install texlive-full to install algorithm.sys
+\usepackage{algorithmic}
+
+\usepackage{verbatim}
+
+\newcommand{\handout}[5]{
+  \noindent
+  \begin{center}
+  \framebox{
+    \vbox{
+      \hbox to 5.78in { {#1} \hfill #2 }
+      \vspace{4mm}
+      \hbox to 5.78in { {\Large \hfill #5  \hfill} }
+      \vspace{2mm}
+      \hbox to 5.78in { {\em #3 \hfill #4} }
+    }
+  }
+  \end{center}
+  \vspace*{4mm}
+}
+
+\newcommand{\lecture}[5]{\handout{#1}{#2}{#3}{#4}{#5}}
+\newcommand{\collision}[0]{\mathrm{collision}}
+\newcommand{\nocollision}[0]{\overline{\collision}}
+
+\newcommand*{\QED}{\hfill\ensuremath{\square}}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{observation}[theorem]{Observation}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{claim}[theorem]{Claim}
+\newtheorem{fact}[theorem]{Fact}
+\newtheorem{assumption}[theorem]{Assumption}
+\newtheorem{note}[theorem]{Note}
+
+% 1-inch margins, from fullpage.sty by H.Partl, Version 2, Dec. 15, 1988.
+\topmargin 0pt
+\advance \topmargin by -\headheight
+\advance \topmargin by -\headsep
+\textheight 8.9in
+\oddsidemargin 0pt
+\evensidemargin \oddsidemargin
+\marginparwidth 0.5in
+\textwidth 6.5in
+
+\parindent 0in
+\parskip 1.5ex
+%\renewcommand{\baselinestretch}{1.25}
+
+\begin{document}
+
+\lecture{Statistical Techniques in Robotics (16-831, S22)}{Lecture \#03
+  (Wednesday, January 26)}{Lecturer: Kris Kitani}{Scribes: Kevin Gmelin, Jonathan Schwartz}{Randomized Greedy and Halving Algorithms}
+
+\section{Review}
+
+In the first of the last two lectures, we discussed how to categorize feedback in a machine learning problem. In general, feedback is either Exhaustive or Sampled, either Instructive or Evaluative, and either One-Shot or Sequence. Note that feedback will fall into three of these categories, with one from each pair. In the second of the last two lectures, we looked at the Prediction With Expert Advice (PWEA) problem, in which feedback is (1) one-shot, (2) instructive, and (3) exhaustive. We investigated the Greedy algorithm for learning a solution to this problem.
+
+%This section serves as a review of the previous lecture and any other context required to frame the content of the current lecture. 
+
+%You may format the scribes in any way you like, aside from changing font style, size and page format. Please use subsections and paragraphs to increase the readability of your notes.
+
+%Length requirement 1-2 pages.
+
+\subsection{Types of Feedback}
+
+The different types of feedback that we covered in class were:
+\begin{enumerate}
+    \item Exhaustive vs Sampled
+    \begin{itemize}
+        \item \textbf{Exhaustive:} will eventually have access to all possible states and actions
+        \item \textbf{Sampled:} can see results of only a sub-set of states and actions
+    \end{itemize}
+    \item Evaluative vs Instructive
+    \begin{itemize}
+        \item \textbf{Evaluative:} information provided only for the action taken
+        \item \textbf{Instructive:} information provided for all possible actions
+    \end{itemize}
+    \item Sequence vs One-Shot
+    \begin{itemize}
+        \item \textbf{Sequence:} the action taken at this time step will affect the next action
+        \item \textbf{One-Shot:} the action taken at this time step will not affect the next action
+    \end{itemize}
+\end{enumerate}
+
+Applying these labels to the feedback received in a given problem will help us to categorize the problem and determine which algorithms to use. 
+
+\subsection{Prediction with Expert Advice}
+In the most recent lecture, we were introduced to the PWEA problem, whose feedback is categorized as:
+\begin{enumerate}
+    \item One-Shot: The action taken at one time step will not affect the action taken at the next time step.
+    \item Instructive: Information is provided on all possible actions that can be taken at each state.
+    \item Exhaustive: We will eventually have access to all possible states and actions.
+\end{enumerate}
+
+\subsection{Consistent (Greedy) Algorithm}
+
+The learning rule for this algorithm is \textbf{to pick any expert who has always been correct up to now.} 
+
+The algorithm itself looks like this:
+
+\begin{algorithm}[H]
+\caption{Consistent (Greedy) Algorithm}
+\label{algo:CGA}
+\begin{algorithmic}[1]
+\STATE $\textbf{V}^{(1)} = \mathcal{H}$ \hfill $\triangleright$ Version Space initially stores all hypotheses
+\FOR{$t=1,\;\cdots,\;T$}
+\STATE \textsc{Receive}$(\textbf{x}^{(t)})$ \hfill $\triangleright$ expert advice
+\STATE $h$ = \textsc{First}\textsc{Elem}$(V^t)$ \hfill $\triangleright$ 'greedy' selection
+\STATE $\hat{y}^{(t)} = h(\textbf{x}^{(t)})$\hfill $\triangleright$ predict outcome using expert
+\STATE \textsc{Receive}$(y^{(t)})$ \hfill $\triangleright$ true outcome
+\STATE $\textbf{V}^{(t+1)} = \{h \in \textbf{V}^{(t)} : h(\textbf{x}^{(t)}) = y^{(t)}\}$ \hfill $\triangleright$ keep only consistent hypotheses
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+For this algorithm to be effective, at least one of the experts needs to always be correct. That makes the problem realizable.
+
+\definition{\normalfont\textbf{Realizability}} is the assumption that the learner has access to the perfect hypothesis.
+
+\normalfont
+This expression can be expressed as:
+\begin{center}
+    $h^* \in \mathcal{H}$
+\end{center}
+
+\normalfont
+Where $h^*$ is a hypothesis that is always correct, and $\mathcal{H}$ is the class of all possible hypotheses. 
+
+\normalfont
+We also spent some time analyzing this algorithm, and observed that the number of elements in the version space \textbf{V} after \emph{M} mistakes is:
+\begin{center}
+    $|\textbf{V}^{(t+1)}| \leq |\mathcal{H}| - M$
+\end{center}
+
+\normalfont
+If we assume realizability, then the maximum number of mistakes that this algorithm can make is:
+\begin{center}
+    $M_C(\mathcal{H}) \leq |\mathcal{H}| - 1$
+\end{center}
+
+Lastly, we summarized the strategy for deriving the mistake bounds for an algorithm. The general process is as follows:
+\begin{enumerate}
+    \item Define \textbf{'potential'} function (size of the version space)
+    \item \textbf{Upper bound} the potential function
+    \item \textbf{Lower bound} the potential function
+    \item \textbf{Combine} bounds
+    \item \textbf{Algebra}/approximation to get performance bound
+\end{enumerate}
+
+
+\section{Summary}
+
+\subsection{Halving (Majority) Algorithm}
+
+In this lecture, we looked at the Halving Algorithm, which improves upon the Consistent Algorithm from the last lecture. 
+
+\definition{\normalfont\textbf{Halving Algorithm}} predicts using majority vote of experts who have not made any mistakes.
+
+\normalfont
+The algorithm works as follows:
+
+\begin{algorithm}[H]
+\caption{Halving (Majority) Algorithm}
+\label{algo:HMA}
+\begin{algorithmic}[1]
+\STATE $\textbf{V}^{(1)} = \mathcal{H}$ \hfill $\triangleright$ Version Space initially stores all hypotheses
+\FOR{$t=1,\;\cdots,\;T$}
+\STATE \textsc{Receive} $(\textbf{x}^{(t)})$ \hfill $\triangleright$ expert advice
+\STATE $\hat{y}^{(t)} = \textsc{MajorityConsensus} (\textbf{V}^{(t)}, \textbf{x}^{(t)})$\hfill $\triangleright$ predict outcome using expert
+\STATE \textsc{Receive}$(y^{(t)})$ \hfill $\triangleright$ true outcome
+\STATE $\textbf{V}^{(t+1)} = \{h \in \textbf{V}^{(t)} : h(\textbf{x}^{(t)}) = y^{(t)}\}$ \hfill $\triangleright$ keep only consistent hypotheses
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+\normalfont
+In this algorithm, the version space is initially the entire hypothesis class. Each trial begins with the algorithm receiving expert advice. A prediction is then made based on the majority vote of the remaining hypotheses in the version space. The true outcome is then received, and all hypotheses that were incorrect are removed from the version space. The Halving Algorithm works very similarly to the Consistent Algorithm, with the exception of line 4. Instead of picking the first consistent expert and using their hypothesis, the Halving algorithm uses the majority vote of the consistent experts to make its decision. 
+
+\normalfont
+We can derive a bound on the number of mistakes that the Halving algorithm will make by using a similar method to that used for finding a bound on the number of mistakes made by the Greedy algorithm. First, we observe that the version space will be reduced to at most half of its size after a mistake, since at least half of the hypotheses would need to be incorrect for the Halving algorithm to make a mistake:
+
+\begin{center}
+    $|\textbf{V}^{t+1}| \leq \frac{1}{2}|\textbf{V}^t|$
+\end{center}
+
+This information can be used to derive an expression for the size of the version space after M mistakes:
+
+\begin{center}
+    $|\textbf{V}^t| \leq (\frac{1}{2})^M |\mathcal{H}|$
+\end{center}
+
+Assuming realizability allows us to write an expression for the lower bound of the version space:
+
+\begin{center}
+    $|\textbf{V}^t| \geq 1$
+\end{center}
+
+Putting these two bounds together gives the expression:
+
+\begin{center}
+    $1 \leq |\textbf{V}^{(t)}| \leq 2^{-M} |\mathcal{H}|$
+\end{center}
+
+We can remove the middle term of this expression, since it has less than or equal to signs on both sides, leaving:
+
+\begin{center}
+    $1 \leq 2^{-M} |\mathcal{H}|$
+\end{center}
+
+Taking the logarithm of both sides of this expression gives:
+
+\begin{center}
+    $0 \leq -M + \log_2|\mathcal{H}|$
+\end{center}
+
+This gives a bound on the total number of mistakes that will be made by the halving algorithm:
+
+\begin{center}
+    $M_{halving}(\mathcal{H}) \leq \log_2 |\mathcal{H}|$
+\end{center}
+
+This is a significantly better mistake bound than that of the Consistent algorithm, whose upper bound on total number of mistakes grows linearly with the size of the hypothesis class while the Halving Algorithm's mistake bound only grows logarithmically.
+
+\subsection{Randomized Greedy}
+
+Another prediction with expert advice algorithm is the randomized algorithm, which is shown below in Algorithm \ref{algo:randomgreedy}.
+
+\begin{algorithm}[H]
+\caption{Randomized Greedy Algorithm}
+\label{algo:randomgreedy}
+\begin{algorithmic}[1]
+\STATE $\textbf{V}^{(1)} = \mathcal{H}$ \hfill $\triangleright$ Version space initialized to hypothesis class
+\FOR{$t=1,\;\cdots,\;T$}
+\STATE \textsc{Receive} ($\textbf{x}^{(t)}$) \hfill $\triangleright$ Receive expert advice
+\STATE $h \sim \textsc{Uniform}(\textbf{V}^{(t)})$ \hfill $\triangleright$ Select random hypothesis
+\STATE $\hat{y}^{(t)} = h(\textbf{x}^{(t)})$ \hfill $\triangleright$ Prediction
+\STATE \textsc{Receive} ($y^{(t)}$) \hfill $\triangleright$ Receive true outcome
+\STATE $\textbf{V}^{(t+1)}) = \{h \in\ \textbf{V}^{(t)} : h(\textbf{x}^{(t)}) = y^{(t)}\}$ \hfill $\triangleright$ Update by keeping only consistent hypotheses
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+In this algorithm, a version space of consistent hypotheses is maintained. The version space is first initialized to be the same as the hypothesis class. Then, during each trial, the algorithm first recieves the expert advice. Then, a hypothesis is randomly chosen from the version space. This hypothesis is used to map the expert advice to a prediction. The algorithm then recieves the true outcome. Finally, all hypotheses in the version space that would have mapped the expert advice to a wrong prediction are removed from the version space. This ensures that the version space only contains hypotheses that would have mapped all past expert advice to the true outcome. 
+
+The randomized greedy algorithm is very similar to the greedy algorithm, with the only difference being how a hypothesis is chosen from the version space. In the regular greedy algorithm, the first hypothesis in the version space is chosen for making a prediction. In the randomized greedy algorithm, a random hypothesis in the version space is used. 
+
+\theorem{\normalfont The expected number of mistakes made by the randomized greedy algorithm has an upper bound of $ln|\mathcal{H}|$ given realizability.}
+
+\normalfont
+To prove this, we first create a lower bound for the size of the version space using the assumption of realizability:
+
+$$|\textbf{V}^{(t)}| \geq 1$$
+
+Next, we note that after each trial, we can write the new size of the version space as:
+
+$$|\textbf{V}^{(t+1)}| = \alpha^{(t)} \cdot |\textbf{V}^{(t)}| $$
+
+where $\alpha^{(t)}$ is the ratio of remaining experts after trial t. This ratio has a subscript t because it varies from trial to trial. 
+
+After T trials, the size of the version space is:
+
+$$|\textbf{V}^{(T+1)}| =  |\textbf{V}^{(1)}| \cdot \prod_{t=1}^{T} \alpha^{(t)} =  
+|\mathcal{H}| \cdot \prod_{t=1}^{T} \alpha^{(t)}$$
+
+where the right hand equality comes from the fact that the version space is initialized to be the hypothesis class.
+
+Using the inequality $b \leq e^{-(1-b)}$, we get:
+
+$$|\textbf{V}^{(T+1)}| \leq |\mathcal{H}| \cdot \prod_{t=1}^{T} e^{-(1-\alpha^{(t)})} = 
+|\mathcal{H}| \cdot e^{-\sum_{t=1}^{T}(1-\alpha^{(t)})}$$
+
+We have thus arrived at an upper bound for the size of the version space. To understand this upper bound, we examine the sum in the exponent:
+
+$$1 - \alpha_t = 1 - \frac{|\textbf{V}^{(t+1)}|}{|\textbf{V}^{(t)}|} = 
+\frac{|\textbf{V}^{(t)}| - |\textbf{V}^{(t+1)}|}{|\textbf{V}^{(t)}|}$$
+
+The numerand of this expression for $1 - \alpha_t$ is the number of hypotheses removed from the version space after conducting trial t, and thus this numerand is the number of inconsistent hypotheses. Since we are dividing this numerand by the size of the verion space, it becomes clear that $1 - \alpha_t$ is equal to the probability of choosing a wrong hypothesis and thus it is the probability of making a mistake at trial t. Thus:
+
+$$1 - \alpha^{(t)} = p(\hat{y}^{(t)} \neq {y}^{(t)}) $$
+
+$$\sum_{t=1}^{T}(1-\alpha^{(t)}) = \sum_{t=1}^{T}(p(\hat{y}^{(t)} \neq {y}^{(t)})) = \mathbb{E} [M^{(T)}]$$
+
+where $\mathbb{E} [M^{(T)}]$ is the expected total number of mistakes after trial T. We can rewrite the upper bound on the version space as:
+
+$$|\textbf{V}^{(T+1)}| \leq |\mathcal{H}| \cdot e^{-\mathbb{E} [M^{(T)}]}$$
+
+Combining the lower and upper bound on version space size:
+
+$$1 \leq |\textbf{V}^{(T+1)}| \leq |\mathcal{H}| \cdot e^{-\mathbb{E} [M^{(T)}]}$$
+
+Removing the middle expression and performing some algebra, we get:
+
+$$1 \leq |\mathcal{H}| \cdot e^{-\mathbb{E} [M^{(T)}]}$$
+
+$$0 \leq ln |\mathcal{H}| -\mathbb{E} [M^{(T)}]$$
+
+$$\mathbb{E} [M^{(T)}] \leq ln |\mathcal{H}|$$
+
+We have arrived at an upper bound on the expected total number of mistakes. Note that unlike previous performance bounds, this is not a bound on the total number of mistakes, but rather, on the average total number of mistakes. The randomized greedy algorithm has the same worst case performance as the normal greedy algorithm, which makes sense because it is possible that the randomized algorithm ends up selecting the first hypothesis every trial and behaving identical to the non-randomized greedy algorithm. 
+
+This may raise the question of why the randomized greedy algorithm would be used over the normal greedy algorithm. Reasons for using a randomized algorithm are given in \cite{cormen2009introduction}, which states that for randomized algorithms, "no particular input elicits its worst-case behavior". The regular greedy algorithm's performance could be affected by the initial order of hypotheses specified when the version space is initialized. It's possible you could have an initial order of hypotheses that has degraded performance for the particular data distributions you are dealing with. Furthermore, if the data is being generated by an adversary, the adversary could use knowledge of your initial order of hypotheses against you to make your normal greedy algorithm perform poorly with lots of mistakes. The randomized greedy algorithm alleviates these concerns because the initial order of hypotheses becomes irrelevant to the total number of mistakes made.
+
+\subsection{Regret}
+
+Previous theorems and analyses of performance bounds assumed realizability, where at least one hypothesis in the hypothesis class is perfect. Performance was measured in terms of the total number of mistakes made, with success tied to being lucky and quickly choosing the perfect hypothesis in the hypothesis class. However, for some prediction with expert advice problems, realizability may not hold, and thus no hypothesis in the hypothesis class would make 0 mistakes. Without realizability, the total number of mistakes of an algorithm is less informative because we don't know how the algorithm compares to the best hypothesis in the hypothesis class. In the end, we want our online learner to have similar performance as the best fixed hypothesis. This leads us to developing a new measure of performance called regret:
+
+\definition{\normalfont\textbf{Regret}} is the difference between the cumulative loss of the online learner and the cumulative loss of a single hypothesis. 
+
+$$R^{(T)}(h) = \sum_{t=1}^{T} L(\hat{y}^{(t)}, y^{(t)}) - \sum_{t=1}^{T}L(h({x}^{(t)}), y^{(t)})$$
+
+\normalfont
+
+where L is a loss function and ${x}^{(t)}$ is the expert advice received at trial t. It is important to note that this definition of regret is relative to a specified fixed hypothesis. If we want the performance relative to the entire hypothesis class, we use external regret:
+
+\definition{\normalfont\textbf{External Regret}} is the difference between the cumulative loss of the online learner and the cumulative loss of the best hypothesis in the hypothesis class. 
+
+$$R^{(T)}(\mathcal{H}) = \sum_{t=1}^{T} L(\hat{y}^{(t)}, y^{(t)}) - \min_{h \in \mathcal{H}} \sum_{t=1}^{T}L(h({x}^{(t)}), y^{(t)})$$
+
+$$R^{(T)}(\mathcal{H}) = \max_{h \in \mathcal{H}} R^{(T)}(h)$$
+
+\normalfont
+We can define a third performance metric, average regret:
+
+\definition{\normalfont\textbf{Average Regret}} is the difference between the average loss of the online learner and the average loss of the best hypothesis in the hypothesis class. 
+
+$$R^{(T)}_{avg} = \frac{1}{T} R^{(T)}(\mathcal{H})$$
+
+\normalfont
+
+In general, we want online learning algorithms whose performance is similar to the performance of the best fixed hypothesis. More formally, we want algorithms whose average regret goes to zero as the number of trials goes to infinity. We call these algorithms 'no regret' algorithms:
+
+\definition{\normalfont\textbf{No Regret Algorithms}} are online learning algorithms whose average regret goes to 0 in the limit as the number of trials approaches infinity. 
+
+\normalfont
+In the long run, no regret algorithms perform no worse than the best hypothesis in the hypothesis class. 
+
+%\section*{References}
+%Include your references here. Please cite any resources you found useful.	
+%Populate the refs.bib file or list your references manually. Be consistent in formatting!
+{
+\bibliography{refs}
+\bibliographystyle{abbrv}
+}
+
+%\section{Appendix}
+%This section provides any relevant background material that was not covered in the lectures, but was found to be useful for understanding the material. 
+%For example, derivations, theory underlying techniques employed, etc. 
+
+%Additionally, this section can summarizes applications or extensions of these techniques found in the literature. 
+
+\end{document} % Done!
+
+
