@@ -130,7 +130,7 @@ Our assumption of realizability is dismissed for the first time in the Weighted 
 
 Let us derive the mistake bound and regret bound for WMA. For this we will be using the following two identities:
 
-\lemma{For $0<x<1$, following two inequalities hold: 
+\lemma{For $0<x<1$, following two inequalities hold (refer to appendix \ref{appendix:ineq1} detailed proof): 
 \begin{align}
     -x-x^2\leq\log(1-x)\label{eq:ineq2}\\
     \log(1-x)\leq-x\label{eq:ineq1}
@@ -309,7 +309,7 @@ We are looking are the performance of algorithms asymptotically i.e their behavi
 %Include your references here. Please cite any resources you found useful.	
 %Populate the refs.bib file or list your references manually. Be consistent in formatting!
 {
-\bibliography{lecture_4}
+\bibliography{lecture_4_A}
 \bibliographystyle{abbrv}
 }
 
@@ -318,15 +318,15 @@ We are looking are the performance of algorithms asymptotically i.e their behavi
 
 \appendix
 
-\section{Proof of $-x-x^2\leq\log(1-x)\label{eq:ineq2}$ and
-    $\log(1-x)\leq-x\label{eq:ineq1}$}
+\section{Proof of $-x-x^2\leq\log(1-x)\label{appendix:ineq2}$ and
+    $\log(1-x)\leq-x \;\forall x \in (0,1)\label{appendix:ineq1}$}
 The Taylor series expansion of log(1-x) is:
 \begin{align}
     \log(1-x)=-x-\frac{x^2}{2}-\frac{x^3}{3}+...
 \end{align}
 When x ranges from zero to one, -x will be subtracted by values further in the series and hence $\log{1-x}$ is smaller than $-x.$ But, since these values are very small they wouldn't become greater than $-x-x^{2}$.  
 
-\section{Proof of $e^x \ge 1 + x$} \label{appendix: ex}
+\section{Proof of $e^x \ge 1 + x \;\forall x \in [-\infty, \infty]$ } \label{appendix: ex}
 
 The taylor expansion of $e^x$ is
 \begin{align*}
