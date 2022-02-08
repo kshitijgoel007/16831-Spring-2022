@@ -1,0 +1,437 @@
+\documentclass[11pt]{article}
+\usepackage{latexsym}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{epsfig}
+\usepackage[tight]{subfigure}
+
+\usepackage{amsmath}
+
+\DeclareMathOperator*{\minimize}{min}
+\DeclareMathOperator*{\maximize}{max}
+
+\usepackage{algorithm}
+ %on linux you may need to run sudo apt-get install texlive-full to install algorithm.sys
+\usepackage{algorithmic}
+
+\usepackage{verbatim}
+
+\newcommand{\handout}[5]{
+  \noindent
+  \begin{center}
+  \framebox{
+    \vbox{
+      \hbox to 5.78in { {#1} \hfill #2 }
+      \vspace{4mm}
+      \hbox to 5.78in { {\Large \hfill #5  \hfill} }
+      \vspace{2mm}
+      \hbox to 5.78in { {\em #3 \hfill #4} }
+    }
+  }
+  \end{center}
+  \vspace*{4mm}
+}
+
+\newcommand{\lecture}[5]{\handout{#1}{#2}{#3}{#4}{#5}}
+\newcommand{\collision}[0]{\mathrm{collision}}
+\newcommand{\nocollision}[0]{\overline{\collision}}
+
+\newcommand*{\QED}{\hfill\ensuremath{\square}}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{observation}[theorem]{Observation}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{claim}[theorem]{Claim}
+\newtheorem{fact}[theorem]{Fact}
+\newtheorem{assumption}[theorem]{Assumption}
+\newtheorem{note}[theorem]{Note}
+
+% 1-inch margins, from fullpage.sty by H.Partl, Version 2, Dec. 15, 1988.
+\topmargin 0pt
+\advance \topmargin by -\headheight
+\advance \topmargin by -\headsep
+\textheight 8.9in
+\oddsidemargin 0pt
+\evensidemargin \oddsidemargin
+\marginparwidth 0.5in
+\textwidth 6.5in
+
+\parindent 0in
+\parskip 1.5ex
+%\renewcommand{\baselinestretch}{1.25}
+
+\begin{document}
+
+\lecture{Statistical Techniques in Robotics (16-831, S20)}{Lecture \#05
+  (Wednesday, February 02)}{Lecturer: Kris Kitani}{Scribe: Daphne Chen}{Online Linear Classification}
+
+\section{Review}
+
+Previously in lecture we covered the Weighted Majority Algorithm (WMA) and Randomized Weighted Majority Algorithm (RWMA), and discussed the principle of using regret in an algorithm. We also learned about other forms of online learning algorithms, of which Prediction With Expert Advice (PWEA) and Online Linear Classification (OLC) are both a subset. In this section, we will briefly summarize the concepts from the prior lectures to help set the stage for discussing OLC in greater depth.
+
+%This section serves as a review of the previous lecture and any other context required to frame the content of the current lecture. 
+
+%You may format the scribes in any way you like, aside from changing font style, size and page format. Please use subsections and paragraphs to increase the readability of your notes.
+
+%Length requirement 1-2 pages.
+        
+\subsection{Weighted Majority Algorithm}
+
+WMA works by learning a weight for each of the expert algorithms, then aggregates them together to determine the prediction with the highest score. Over time, the expert that tends to make the best predictions (and thus has the highest weight) will have its weight proportionately increase, and will accordingly become the trusted opinion amongst the algorithms.
+
+The full algorithm consists of the following steps:
+
+\begin{algorithm}[H]
+\caption{Weighted Majority Algorithm}
+\label{algo:wma}
+\begin{algorithmic}[1]
+\STATE \textbf{function} \textsc{Weighted Majority Algorithm}
+\STATE $\pmb{w}^{(1)} \leftarrow \{w_n^{(1)}=1\}_{n=1}^N$ \hfill $\triangleright$ Initialize weights
+\STATE $\eta\leq\frac{1}{2}$\hfill $\triangleright$ Initialize penalty rate parameter
+\FOR{$t=1,\;\cdots,\;T$} 
+\STATE \textsc{Receive} ($\pmb{x}^{(t)}\in\{-1, 1\}^N$) \hfill $\triangleright$ Receive expert predictions as observations from -1 to 1
+\STATE $\hat{y}^{(t)} = \text{sign}\Big(\sum_{n=1}^Nx_n^{(t)}\cdot w_n^{(t)}\Big)\in\{-1, 1\}$ \hfill $\triangleright$ Make prediction as binary output
+\STATE \textsc{Receive} ($y^{(t)}\in\{-1, 1\}$) \hfill $\triangleright$ Get actual prediction
+\STATE $w_n^{(t+1)}\leftarrow w_n^{(t)}\big(1-\eta\cdot\pmb{1}[y^{(t)}\neq x_n^{(t)}]\big)$ \hfill $\triangleright$ Weight penalty update
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+It is also key to note the update equation (line 8 of the algorithm), which shows that the weights are updated when the learner prediction and the actual prediction do not match. This can be used to derive the regret bound.
+
+Accordingly, we utilize cumulative loss through regret, given by $R^{(T)}(H)$. This parameter is bounded by 
+
+\begin{align}
+    R(h_n) = M^{(T)} - m_n^{(T)} \leq (1+2\eta) m_n^{(T)} + \frac{2\log N}{\eta}
+\end{align}
+
+By studying this upper bound for regret, we can conclude that the average regret does not converge to zero. Thus WMA is not a no-regret algorithm. Instead, the algorithm has bounded regret, where error scales linearly with time.
+
+\subsection{Randomized Weighted Majority Algorithm}
+
+In contrast to WMA, as the name suggests, the RWMA approach works by adding randomization by sampling a single expert rather than weighting together multiple expert opinions. Similarly, it is also a no-regret algorithm. We will see in the following outline of the algorithm how adding one step can cut the number of mistakes in half.
+
+The full algorithm for RWMA consists of the following steps:
+
+\begin{algorithm}[H]
+\caption{Randomized Weighted Majority Algorithm (RWMA)}
+\label{algo:rwma}
+\begin{algorithmic}[1]
+\STATE \textbf{function} \textsc{Randomized Weighted Majority Algorithm}
+\STATE $\textbf{w}^{(1)} \leftarrow \{w_n^{(1)}=1\}_{n=1}^N$ \hfill $\triangleright$ Initialize weights
+\STATE $\eta\leq\frac{1}{2}$\hfill $\triangleright$ Initialize penalty rate parameter
+\FOR{$t=1,\;\cdots,\;T$}
+\STATE \textsc{Receive} ($\textbf{x}^{(t)}\in\{-1, 1\}^N$) \hfill $\triangleright$ Receive expert predictions as observations from -1 to 1
+\STATE $I\sim$ \textsc{Multinomial}($\textbf{w}^{(t)}/\Phi^{(t)}$), where $\Phi^{(t)}=\sum_{n=1}^Nw_n^{(t)}$
+\STATE $\hat{y}^{(t)}=h_i(\textbf{x}^{(t)})$ \hfill $\triangleright$ Make prediction as binary output
+\STATE \textsc{Receive} ($y^{(t)}\in\{-1, 1\}$) \hfill $\triangleright$ Get actual prediction
+\STATE $w_n^{(t+1)}\leftarrow w_n^{(t)}\big(1-\eta\cdot\textbf{1}[y^{(t)}\neq h_n(\textbf{x})^{(t)}]\big)$ \hfill $\triangleright$ Weight penalty update
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+Here, the expected regret is bounded by:
+
+\begin{align}
+    \mathbb{E}[R] \leq \eta m_n^{(T)} + \frac{\log N}{\eta}
+\end{align}
+
+
+\section{Summary}
+\subsection{Online Linear Classification}
+
+We will begin by summarizing Online Linear Classification (OLC) before moving on to the following sections which dive into the two algorithms, Perceptron and Winnow, that are used to learn an online linear classifier. 
+
+OLC is a type of Online Learning algorithm, similar to PWEA, as we covered in prior lectures. Let us first briefly recap linear classification to set the stage for discussing OLC. Most linear classifiers use all data at once during the training process, whereas online learning requires that the training samples are processed one by one as data becomes available. 
+
+Most linear classification problems can be set up as a decision problem based on the linear combination of input features. In the example used in this class, this took form as a method of fitting a hyperplane to classify positive and negative examples into their correct classes by determining the appropriate prediction rule. 
+
+From here, we will discuss two approaches for learning an online linear classifier: 
+
+\begin{enumerate}
+    \item The Perceptron algorithm, which uses additive updates, and
+    \item The Winnow algorithm, which uses multiplicative updates.
+\end{enumerate}
+
+
+\section{Perceptron Algorithm}
+
+\subsection{Summary}
+
+The Perceptron Algorithm is the oldest and one of the most classic approaches for minimizing regret in OLC. In summary, it works by updating the current prediction $x^{(t)}$ as denoted in Line 7 in Algorithm \ref{algo:perceptron} below once a mistake is detected. 
+
+The steps for the Perceptron Algorithm are shown below: 
+
+\begin{algorithm}[H]
+\caption{Perceptron Algorithm}
+\label{algo:perceptron}
+\begin{algorithmic}[1]
+\STATE \textbf{function} \textsc{Perceptron Algorithm}
+\STATE $\textbf{w}^{(1)} \leftarrow 0$ \hfill $\triangleright$ Initialize weights
+\FOR{$t=1,\;\cdots,\;T$}
+\STATE \textsc{Receive} ($\textbf{x}^{(t)}\in R^N$) \hfill $\triangleright$ Receive expert predictions
+\STATE $\hat{y}^{(t)} = \text{sign}\Big(w^{(t)} x^{(t)}\Big)$ \hfill $\triangleright$ Make prediction
+\STATE \textsc{Receive} ($y^{(t)}\in\{-1, 1\}$) \hfill $\triangleright$ Get actual prediction
+\STATE $w_n^{(t+1)}\leftarrow w_n^{(t)} + y^{(t)} \cdot x^{(t)} \cdot\textbf{1}[y^{(t)}\neq x_n^{(t)}] $ \hfill $\triangleright$ Weight penalty update
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+As noted in the lecture, the Perceptron Algorithm possesses the following properties: 
+
+\begin{enumerate}
+    \item It is fast, because the update for an incorrect prediction is a dot product and the update is a sum, thus can run in linear time. No weight updates are required for correct predictions, further simplifying the algorithm.
+    \item It is not a large margin classifier, since it only uses sign for making predictions, thus the algorithm contains no notion of margin.
+    \item The algorithm does not work on non-separable data; since the Perceptron Algorithm defines its decision boundary with a \textit{linear} hyperplane, it is only able to classify linearly separable data. 
+\end{enumerate}
+
+\subsection{Mistake Bound}
+
+In this section, we will derive the mistake bound for the Perceptron Algorithm using the following 5-step strategy:
+
+\begin{enumerate}
+    \item Define a potential function
+    \item Upper bound the potential function
+    \item Lower bound the potential function
+    \item Combine bounds
+    \item Get performance bound using algebra or approximation
+\end{enumerate}
+
+\theorem{(Perceptron Mistake Bound)} Let R be the norm of observations, where $R=\max\limits_t \|x^{(t)}\|$. Let $\gamma$ be the margin of separability, where $\gamma=\min\limits_t y_t \langle \textbf{w}^\star, \textbf{x}^{(t)} \rangle $ and $\|\textbf{w}^\star\|=1$. Then the Perceptron Mistake Bound is as follows where $M$ is the total mistakes made by the Perceptron Algorithm:
+
+\begin{align}
+    M \leq \frac{R^{2}}{\gamma^{2}}
+\end{align}
+
+\proof{Following the 5 steps defined above, we will begin by defining the potential function, in this case as the squared $l_2$ norm of the weight vector $\textbf{w}$:}
+
+\begin{align}
+    \Phi^{(t)} = \norm ||{\pmb{w} ^ {(t)}}||^{2} = \sum_{n=1} {(w_n^{(t)})}^{2}\label{eq:perceptron_potential}
+\end{align}
+
+Next, we will use algebra to manipulate the equation into a form where we will derive the upper bound.
+
+\begin{align}
+    \Phi^{(t)} &= \norm ||{ \pmb{w} ^ {(t-1)} + y^{t}\pmb{x}^{(t)}}||^{2} = \sum_{n=1} {(w_n^{(t)})}^{2}\, , \\
+             &= \norm ||{ \pmb{w} ^ {(t-1)} }||^{2} + \norm ||{ \pmb{x} }||^{2} + 2 y^{(t)} \langle \pmb{w}^{(t-1)} \, , \pmb{x} ^{t} \rangle\, \\
+             &\le \norm ||{ \pmb{w} ^ {(t-1)} } ||^{2} + \norm ||{ \pmb{x} } ||^{2} \,, \\
+             &\le  \norm ||{ \pmb{w} ^ {(t-1)} }||^{2} + R^2 \, \;\;\; \text{(Where } R=\max\limits_t \|x^{(t)}\| ). \label{eq:potential_upper1}
+\end{align}
+
+Next, we will determine the upper bound using induction as follows, beginning from the base case:
+
+\begin{align}
+  \Phi^{(1)} &\le  \norm ||{ \pmb{w} ^ {(0)} }||^{2} + R^2 \,, \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\, \text{(1 mistakes)} \\
+  \Phi^{(2)} &\le  \norm ||{ \pmb{w} ^ {(0)} }||^{2} + 2R^2 \,, \,\,\,\,\,\,\,\,\,\,\,\,\,\,\, \text{(2 mistakes)}  \\
+    &\vdots \\
+  \Phi^{(T)} &\le  \norm ||{ \pmb{w} ^ {(0)} }||^{2} + M^{(T)}R^2 \, , \,\,\,\, \text{(M mistakes)} \\
+  \Phi^{(T)} &\le  M^{(T)}R^2 \label{eq:potential_upper2}
+\end{align}
+
+Now that we have upper bounded the potential function, we can proceed with the next step, lower bounding the potential function. We will do this by starting with an intermediate potential function given by the following:
+
+\begin{align}
+    \left\langle\boldsymbol{w}^{*}, \boldsymbol{w}^{(t)}\right\rangle
+    \label{eq:dot}
+\end{align}
+
+In Equation \ref{eq:dot}, the symbol $\boldsymbol{w}^{*}$ is used to indicate a perfect classifier which is a unit vector (i.e. its norm is equal to 1), while the symbol $\boldsymbol{w}^{(t)}$ represents the classifier at timestep $t$. 
+
+First, let us derive an upper bound for Equation \ref{eq:dot}:
+
+\begin{align}
+    \frac{\boldsymbol{w}}{\|\boldsymbol{w}\|}=\underset{\boldsymbol{w}^{\prime}}{\arg \max }\left\langle\boldsymbol{w}^{\prime},     \boldsymbol{w}\right\rangle
+    \label{eq:argmax}
+\end{align}
+
+We start from Equation \ref{eq:argmax}, following the logic that the dot product in Equation \ref{eq:dot} will be maximized when the values $\boldsymbol{w}^{*}$ and $\boldsymbol{w}$ are in the same orientation. 
+
+The upper bound is given by:
+
+\begin{align}
+    \left\langle\boldsymbol{w}^{*}, \boldsymbol{w}^{(T)}\right\rangle \ \leq\left\langle\frac{\boldsymbol{w}^{(T)}}{\left\|\boldsymbol{w}^{(T)}\right\|}, \boldsymbol{w}^{(T)}\right\rangle=\frac{\left\|\boldsymbol{w}^{(T)}\right\|^{2}}{\left\|\boldsymbol{w}^{(T)}\right\|}=\left\|\boldsymbol{w}^{(T)}\right\|
+    \label{eq:upperbound}
+\end{align}
+
+Next, we will derive a lower bound for Equation \ref{eq:dot}:
+
+After applying the update rule, we get:
+
+\begin{align}
+    \left\langle\pmb{w}^{*} \pmb{w}^{(t)} \right\rangle &= \left\langle\pmb{w}^{*} \pmb{w}^{(t-1)} \right\rangle + y^{(t)} \left\langle\pmb{w}^{*} \pmb{w}^{(t)} \right\rangle\, , \\
+    \left\langle\pmb{w}^{*} \pmb{w}^{(t)} \right\rangle &\ge \left\langle\pmb{w}^{*} \pmb{w}^{(t-1)} \right\rangle + \gamma \, ,
+    \label{eq:17}
+\end{align}
+
+After plugging in $\gamma = \underset{x}{\mathrm{min}} \, y_{t} \dotproduct{\pmb{w}^{*}}{\pmb{x}^{(t)}}$. 
+
+Once again using induction to derive the lower bound, starting from the base case:
+
+\begin{align}
+    \left\langle\pmb{w}^{*} { \pmb{w}^{(1)} } \right\rangle &\ge \left\langle\pmb{w}^{*} { \pmb{w}^{(0)} } \right\rangle + \gamma \, , \nonumber \\
+    \left\langle\pmb{w}^{*} { \pmb{w}^{(2)} } \right\rangle &\ge \left\langle\pmb{w}^{*} { \pmb{w}^{(0)} } \right\rangle + 2 \gamma \, , \nonumber \\
+    &\vdots \nonumber \\
+    \left\langle\pmb{w}^{*} { \pmb{w}^{(T)} } \right\rangle &\ge \left\langle\pmb{w}^{*} { \pmb{w}^{(0)} } \right\rangle + M^{(T)} \gamma \, .
+\end{align}
+
+Thus we have derived that the lower bound for Equation \ref{eq:dot} is 
+
+\begin{align}
+    \left\langle\pmb{w}^{*} { \pmb{w}^{(T)} } \right\rangle &\ge M^{(T)} \gamma \, . \label{eq:lowerbound}
+\end{align}
+
+We can then move on to step 4 of the 5-step strategy, combining bounds. We are able to do that as follows using the results derived in steps 2 and 3 above, in Equations \ref{eq:upperbound} and \ref{eq:lowerbound}, respectively. In doing so, we will derive the lower bound of the potential function. Thus:
+
+\begin{align}
+    M^{T} \cdot \gamma \leq 
+    \left\langle\boldsymbol{w}^{*}, \boldsymbol{w}^{(T)}\right\rangle
+    \leq \left\|\boldsymbol{w}^{(T)}\right\| \\
+    M^{T} \cdot \gamma \leq \left\|\boldsymbol{w}^{(T)}\right\| \\
+    {(M^{T} \cdot \gamma)}^{2} \leq {\left\|\boldsymbol{w}^{(T)}\right\|}^{2} \text { squaring both sides, where } {\left\|\boldsymbol{w}^{(T)}\right\|}^{2} \text{is the potential function we defined}
+     \label{eq:23}
+\end{align}
+
+The last step of the 5-step approach is to get the mistake bound of the Perceptron Algorithm. Since we have derived the upper and lower bounds of the potential function, we can combine them as follows to get the mistake bound:
+
+\begin{align}
+    {(M^{T} \cdot \gamma)}^{2} &\leq 
+    M^{(T)}\cdot R^2 \nonumber \\
+    \therefore M^{(T)} &\leq \frac{R^{2}}{\gamma^{2}}
+\end{align}
+
+From this mistake bound we can deduce that when $\gamma$ is large, $M$ becomes smaller since the data is more separable, thus the learner is better able to classify the data. 
+
+\section{Winnow Algorithm}
+
+\subsection{Summary}
+
+The second approach to OLC that we will study is the Winnow Algorithm. The Winnow Algorithm is different from the Perceptron Algorithm in that it uses a multiplicative weight update instead of additive. It represents the problem as a disjunctive boolean function, which supposes that not all input features are relevant; thus, it works on problems where both inputs and outputs are binary features/labels. 
+
+Further, it is different from the Perceptron Algorithm in that the Winnow Algorithm initializes the weights to 1 instead of 0 and makes predictions as binary output. Additionally, as noted above, the update step is exponential and multiplicative, as we can see below in Algorithm \ref{algo:winnow}.
+
+The steps for the Winnow Algorithm are shown below:
+
+\begin{algorithm}[H]
+\caption{Winnow Algorithm}
+\label{algo:winnow}
+\begin{algorithmic}[1]
+\STATE \textbf{function} \textsc{Winnow Algorithm}
+\STATE $\pmb{w}^{(1)} = \{1, 1, ..., 1\}$
+\hfill $\triangleright$ Initialize weights
+\FOR{$t=1,\;\cdots,\;T$}
+\STATE \textsc{Receive} ($\pmb{x}^{(t)} \in \{0, 1\}^N$) \hfill $\triangleright$ Receive expert predictions
+\STATE $\hat{y}^{(t)} = \pmb{1}[\big\langle w^{(t)},  x^{(t)}\big\rangle > N]$ 
+\hfill $\triangleright$ Make prediction as binary output
+\STATE \textsc{Receive} ($y^{(t)}\in\{0, 1\}$)
+\STATE $w_i^{(t+1)} = w_i^{(t)}(1 + \beta)^{(y^{(t)} - \hat{y}^{(t)}) \cdot x_i^{(t)}}$
+\hfill $\triangleright$ Weight update step
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+Upon further analysis of the algorithm, we can note the following observations about the Winnow update rule – if there is an incorrect prediction, the value used to weight the attributes differs depending on the prediction. For instance, if the prediction is 0 and the true label is 1, then the multiplied value is $(1+\beta)$ (and thus the weight is increased); if vice versa, and the prediction is 1 and the true label is 0, then the multiplied value is $\frac{1}{(1+\beta)}$ (and thus the weight is decreased).
+
+\subsection{Mistake Bound}
+
+To dive further into our understanding of the Winnow Algorithm, we will perform an analysis of the mistake bound. As before, the first step is to define a potential function. We will define the following potential function as the sum of weights among all features at timestep $t$:
+
+\begin{align}
+  \Phi^{(t)} = \sum_{n=1}^N w_n^{(t)} \label{eq:WinnowPotential} 
+\end{align}
+
+For every mistake $m$, we will separate out mistakes made on positive samples versus negative samples as follows:
+
+\begin{align}
+    m = m^+ + m^-
+\end{align}
+
+This allows us to appropriately bound the potential function. Starting from mistakes on positive samples, 
+
+\begin{align}
+    \Phi^t = \Phi^{t-1} + \pmb{w}^{(t-1)} \cdot \pmb{x}^{(t-1)}
+\end{align}
+
+Where the weight is increased, as we noted above in our analysis. A mistake on a positive example means
+
+\begin{align}
+    \hat{y}^{(t)}=\textbf{1}[\langle \textbf w^{(t)}, \textbf x^{(t)}\rangle>N]=0 \\
+    \textbf{w}^{(t-1)}\cdot \textbf{x}^{(t-1)} \leq N \\
+     \Phi^{(t)} \leq \Phi^{(t-1)} + N \\ 
+    \Phi^{(t)} \leq \Phi^{1} + m^+N = N + m^+N \label{eq:PositiveUpdate}
+\end{align}
+
+Where Equation \ref{eq:PositiveUpdate}, resulting from proof by induction, represents the upper bound on mistakes from positive samples. 
+
+Next, considering negative samples, weights are decreased by a factor of 2, thus:
+
+\begin{align}
+    \Phi^{(t)} = \Phi^{(t-1)} - \sum_{n:x_n^{(t)}=1} \frac{1}{2}w_n^{(t-1)} \nonumber\\
+    = \Phi^{(t-1)} - \frac{1}{2} \textbf{w}^{(t-1)}\cdot \textbf{x}^{(t-1)} \\
+    \Phi^{(t)} < \Phi^{(t-1)} -\frac{1}{2}N \\
+    \Phi^{(t)} < \Phi^{1} -\frac{1}{2}m^-N = N - m^-\frac{1}{2}N \label{eq:NegativeUpdate}
+\end{align}
+
+Where Equation \ref{eq:NegativeUpdate}, resulting from proof by induction, represents the upper bound on mistakes from negative samples.
+
+Finally, combining Equations \ref{eq:PositiveUpdate} and \ref{eq:NegativeUpdate}, we can get the upper bound for the potential function:
+
+\begin{align}
+    \Phi^{(t)} \leq N +m^+N - m^-\frac{1}{2}N \label{eq:WinnowPotentialUpper}
+\end{align}
+
+Finding the lower bound is much more simple. Since the Winnow Algorithm uses weights initialized to 1 and the sign does not change during the algorithm update, the lower bound is simply 0.
+
+Now, we combine the two:
+
+\begin{align}
+    0 \leq N + m^+ N - m^- \frac{1}{2} N \\
+    m^- < 2 + 2m^+ \label{eq:37}
+\end{align}
+
+To conclude our proof for the upper bound of the Winnow Algorithm, let us consider two lemmas: first, that if we make a mistake on a positive sample, then the weight $w_n^{(t)} < N$. Secondly, if a certain feature makes $m$ mistakes, then its weight will be $2^m$. This gives us the following:
+
+\begin{align}
+    w_n^{(t)} = 2^{m^+-1} < N \\
+    m^+ < log_2N + 1 \\
+    m^+ < k(log_2N + 1) \, \, (\text{$k$ relevant features)}
+\end{align}
+
+Now, use Equation \ref{eq:37} to get the upper bound of mistakes for the Winnow Algorithm:
+
+\begin{align}
+    m^- < 2 + 2k(log_2N + 1) \\
+    m = m^+ + m^- < 2 + 3k(log_2N + 1)
+\end{align}
+
+\section{Conclusion}
+
+In this lecture we covered two types of Online Linear Classification: the Perceptron Algorithm and the Winnow Algorithm. While both approaches involve the notion of separability of data using a linear hyperplane, they are intrinsically different. The Perceptron Algorithm is fast because it has an additive weight update, while the Winnow Algorithm has an exponential, multiplicative update and thus performs better when there are irrelevant dimensions. We analyzed the steps of each algorithm and derived their mistake bounds. The content from this lecture will help set the stage for learning further about other forms of online learning.
+
+%\section*{References}
+%Include your references here. Please cite any resources you found useful.	
+%Populate the refs.bib file or list your references manually. Be consistent in formatting!
+{
+\bibliography{refs}
+\bibliographystyle{abbrv}
+}
+
+[1] N. Littlestone, M. K. Warmuth. \textit{The Weighted Majority Algorithm.}
+
+[2] S. Arora. \textit{Decision-making under total uncertainty: the multiplicative weight algorithm.}
+
+[3] N. Littlestone, \textit{Redundant noisy attributes, attribute errors, and linear-threshold learning using winnow}, in Proceedings of the 4th Annual Conference on Computational Learning Theory, ACM, New York, 1991, pp. 147–156.
+
+
+% \section{Appendix}
+%This section provides any relevant background material that was not covered in the lectures, but was found to be useful for understanding the material. 
+%For example, derivations, theory underlying techniques employed, etc. 
+
+%Additionally, this section can summarizes applications or extensions of these techniques found in the literature. 
+
+\end{document} % Done!
+
+
