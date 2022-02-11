@@ -94,7 +94,7 @@ The problem of Prediction with Expert Advice(PWEA) \cite{littman2015reinforcemen
 \definition{\normalfont\textbf{Realizability} Assumption that a perfect hypothesis exists.}
 
 \normalfont
-Previously under the assumption of realizability we calculated mistake bound with tells the cost of deviation for not following the perfect hypothesis. We had seen previously the Majority algorithm with halving , which maintains a set of hypothesis (the version space) consistent with past evidence, i.e. it predicts according to the majority vote of hypothesis from the version space. The mistake bound of the halving algorithm  was logarithmic in the number of hypotheses, since it removes at least half the hypotheses after one mistake. 
+Previously under the assumption of realizability we calculated mistake bound which tells upper bound on the number of mistakes. We had seen previously the Majority algorithm with halving , which maintains a set of hypothesis (the version space) consistent with past evidence, i.e. it predicts according to the majority vote of hypothesis from the version space. The mistake bound of the halving algorithm ($log_{2}N$) was logarithmic in the number of hypotheses, since it removes at least half the hypotheses after one mistake. 
 
 However, we will now relax this realizability assumption and allow even the best expert to make mistakes. With the new condition of non-realizability, we will evaluate the performance of the algorithm in terms of the \textit{regret bound} instead of the \textit{mistake bound}. In such a case, we would like to design algorithms demonstrating small regrets. Following is the definition of regret below.
 \definition{\normalfont\textbf{Regret} of the learner, $R^{(T)}(H)$, is the cumulative loss for not following the best hypothesis in the hypothesis class $H$. Mathematically formulation of regret is:}
@@ -104,7 +104,7 @@ However, we will now relax this realizability assumption and allow even the best
 \normalfont
 where, $\sum_{t=1}^{T} l(\hat{y}^{(t)}, y^{(t)})$ represents the cumulative loss of the learner, and $\minimize\sum_{t=1}^{T} l(h(x^{(t)}), y^{(t)})$ represents the loss of best single hypothesis. 
 
-Regret bound is a general performance bound and mistake bound is a special case of it. In this lecture, we will use the regret bound to characterize online algorithms and conversely, we will be interested in finding good algorithms as characterized by this regret bound. We recall that in previous lectures, we had assumed at least one perfect algorithm, which implies realizability. However, in this lecture, the first algorithm we will consider is under the relaxed assumption of non-realizability, namely, the Weighted Majority Algorithm (WMA).
+In this lecture, we will use the regret bound to characterize online algorithms and conversely, we will be interested in finding good algorithms as characterized by this regret bound. We recall that in previous lectures, we had assumed at least one perfect solution, which implies realizability. However, in this lecture, the first algorithm we will consider is under the relaxed assumption of non-realizability, namely, the Weighted Majority Algorithm (WMA).
 
 % \definition{\normalfont\textbf{Potential Function} is the sum of the weights, a non-integer scalar equivalent to the size of the version space, used in the context of Weighted Majority algorithms.}
 
@@ -158,7 +158,7 @@ By substituting t=1 and using induction we would get the following equation.At t
     \Phi^{(2)}\leq \Phi^{(1)}\Big(1-\frac{\eta}{2}\Big)^{M^{(1)}}=N\Big(1-\frac{\eta}{2}\Big)^{M^{(1)}}
 \end{align}
 
-The lower bound function is derived using the fact that a single element is always greater than or equal to the sum.
+The lower bound function is derived using the fact that a single element is always smaller than or equal to the sum.
 \begin{align}
     w_i{(t)} \leq \phi^{(t)}=\sum_n w_n{(t)} \label{eq:wma_lower}
 \end{align}
@@ -262,7 +262,7 @@ We can now derive the upper bound of $\Phi^{(T+1)}$ by combining Lemma \ref{lemm
     &\leq N\exp{\big(-\mathbb{E}[M^{(T)}]\big)}\;\;\;(\because\;\text{definition of}\;M^{(t)})\label{eq:rwma_upper}
 \end{align}
 
-Step 3: Lower bound calculation - The lower bound function is derived using the fact that a single element is always greater than or equal to the sum.
+Step 3: Lower bound calculation - As shown before in equation \ref{eq:wma_lower} , single element of the weight is always lesser than or equal to the sum.
 \begin{align}
     w_i{(t)} \leq \phi^{(t)}=\sum_n w_n{(t)} 
 \end{align}
@@ -322,7 +322,18 @@ We are looking are the performance of algorithms asymptotically i.e their behavi
     $\log(1-x)\leq-x \;\forall x \in (0,1)\label{appendix:ineq1}$}
 The Taylor series expansion of log(1-x) is:
 \begin{align}
-    \log(1-x)=-x-\frac{x^2}{2}-\frac{x^3}{3}+...
+\log(1-x)=-x-\frac{x^2}{2}-\frac{x^3}{3}+... \nonumber && \\
+	\log(1-x) \ge -x -x^{2} 
+	\because	
+	\begin{cases}
+	\frac{x^{2}}{2} \ge 0 (\textit{ adding and subtracting }  \frac{x^{2}}{2} \forall \; x \; \in (0, 1) ) \\
+	\sum_{k = 1}^{\infty} -\frac{x^{2k+1}}{2k+1} - \frac{x^{2k+2}}{(2k+2)}\; \ge \; 0 \; \forall \; x \; \in (0, 1) \\
+	\end{cases} \\
+	\log(1-x) \le -x 
+	\because	
+	\begin{cases}
+	\sum_{k = 1}^{\infty} -\frac{x^{2k}}{2k} - \frac{x^{2k+1}}{(2k+1)}\; \le \; 0 \; \forall \; x \; \in (0, 1) \\
+	\end{cases}  
 \end{align}
 When x ranges from zero to one, -x will be subtracted by values further in the series and hence $\log{1-x}$ is smaller than $-x.$ But, since these values are very small they wouldn't become greater than $-x-x^{2}$.  
 
