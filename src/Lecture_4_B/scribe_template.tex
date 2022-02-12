@@ -115,12 +115,14 @@ Up till now, we have discussed Prediction with Expert Advice (PWEA) algorithms i
 \subsection{Strategy for Bound Derivation}
 This is a summary for the five steps required to derive bounds for any online learning algorithm.
 \begin{enumerate}
-    \item \textbf{Potential Function} definition (The potential function is essentially the size of the version space)
-    \item \textbf{Upper Bound} the potential function
-    \item \textbf{Lower Bound} the potential function
-    \item \textbf{Combine} the upper and lower bounds
-    \item \textbf{Approximate/Use Algebra} to get the performance bound
+    \item Define the \textbf{Potential Function $\Phi(t)$}. Essentially, the potential function is the size of the version space. There is no fixed method to estimate the potential function. One usually employs hit-and-trial method and picks the potential function which gives the tightest bounds.
+    \item \textbf{Upper Bound} the potential function. The typical way to do so is to find the relationship between $\Phi(t+1)$ and $\Phi(t)$. Then using induction, we find the relationship between $\Phi(t+1)$ and $\Phi(1)$ (when $t=1$). Say we get $\Phi(t+1) \leq U$.
+    \item \textbf{Lower Bound} the potential function. If one assumes realisability (we'll discuss this in the next section), then the lowest bound for $\Phi(t)$ is 1. Say we get $\Phi(t+1) \geq L$.
+    \item \textbf{Combine} the upper and lower bounds. Essentially, $L \leq \Phi(t) \leq U$.
+    \item \textbf{Approximate/Use Algebra} to get the performance bound. This helps us get either the upper bound on the number of mistakes ($M$) or the regret.
 \end{enumerate}
+
+We will see how to use these 5 steps for estimating the bounds for Weighted Majority Algorithm and Randomized Weighted Majority Algorithm in the upcoming sections.
 
 
 \subsection{Realizability}
@@ -177,7 +179,7 @@ We now discuss Weighted Majority Algorithm that relaxes the assumption of realiz
 The Weighted Majority Algorithm \cite{littlestone1989weighted} is listed as Algorithm \ref{algo:wma} below. 
 
 Step 1 initialises a vector of weights $\textbf{w}^{(1)}$. In Step 2, we initialise a penalty rate $\eta$ ($\eta > 0$). Step 3 suggests that the inner loop runs from timestep $t=1$ to $t=T$ ($T \rightarrow \infty$).
-In Step 4, we receive experts' predictions as $\textbf{x}^{(t)}$. $\textbf{x}^{(t)}$ is a $N$-dimensional vector with values $\in\{-1, 1\}$. Step 5 is where the online learner decides which prediction to make. If we notice the equation, we realise that the vector $\textbf{w}^{(t)}$ acts as weights (for every expert) and the algorithm gets its name from this step. The learner weighs each expert prediction with its associated weight and sums them. The sign of the sum will be positive if majority experts predict $+1$, else it will be negative. Therefore, we look at the sign of the dot product of the weight vector and the experts' prediction vector and predict $\hat{y}^{(t)}$ accordingly. In Step 6, we receive the actual ground truth ${y}^{(t)}$. Step 7 enlists the weight update rule. The update equation states that the weights are updated only when the learner's prediction doesn't match the actual answer. In fact, when the learner makes a mistake, the weights of the experts (with wrong predictions) are penalised by $- \eta$. 
+In Step 4, we receive experts' predictions as $\textbf{x}^{(t)}$. $\textbf{x}^{(t)}$ is a $N$-dimensional vector with values $\in\{-1, 1\}$. Step 5 is where the online learner decides which prediction to make. If we notice the equation, we realise that the vector $\textbf{w}^{(t)}$ acts as weights (for every expert) and the algorithm gets its name from this step. The learner weighs each expert prediction with its associated weight and sums them. The sign of the sum will be positive if majority experts predict $+1$, else it will be negative. Therefore, we look at the sign of the dot product of the weight vector and the experts' prediction vector and predict $\hat{y}^{(t)}$ accordingly. In Step 6, we receive the actual ground truth ${y}^{(t)}$. Step 7 enlists the weight update rule. The update equation states that the weights are updated only when the learner's prediction doesn't match the actual answer. In fact, when the learner makes a mistake, the weights of the experts (with wrong predictions) are penalised by $ \eta$. 
 
 
 It is important to note the weight update rule as we will be using it in our regret bound analysis.
@@ -203,10 +205,79 @@ Moving ahead, we want to estimate the mistake bounds as well as regret bounds of
 
 \lemma {For $0<x<1$, following two inequalities hold: 
 \begin{align}
-    -x-x^2\leq\log(1-x)\label{eq:ineq2}\\
-    \log(1-x)\leq-x\label{eq:ineq1}
+    \log(1-x)\leq-x\label{eq:ineq1}\\
+     -x-x^2\leq\log(1-x)\label{eq:ineq2}
 \end{align}}\label{lemma:1}
-\proof{Applying Taylor series to $\log(1-x)$.}
+\proof{
+
+Let us first prove  \ref{eq:ineq1}
+\begin{align*}
+    \log(1-x)\leq-x\
+\end{align*}
+
+Taking exponential on both sides:
+\begin{align*}
+    e^{\log(1-x)} \leq e^{-x}
+    \\
+    1-x \leq e^{-x}
+\end{align*}
+
+Applying Taylor series expansion of $e^{-x}$:
+\begin{align*}
+    e^{-x} = 1 - x + \frac{x^2}{2!} - + \frac{x^3}{3!} + ...
+\end{align*}
+
+Since $0<x<1$, all terms $\frac{x^3}{3!}$ and beyond would be very small and can be neglected.
+
+Hence, we can clearly see that 
+
+\begin{align*}
+    e^{-x} = 1 - x + \frac{x^2}{2!} \geq 1-x 
+    \\
+    1-x \leq e^{-x}
+    \\        
+    e^{\log(1-x)} \leq e^{-x}
+    \\
+    \log(1-x)\leq-x\
+\end{align*}
+
+Now, we will prove \ref{eq:ineq2}
+\begin{align*}
+    -x-x^2\leq\log(1-x)
+\end{align*}
+
+Taking exponential on both sides:
+\begin{align*}
+    e^{-x-x^2} \leq e^{\log(1-x)}
+    \\
+    e^{-x-x^2} \leq (1-x)
+\end{align*}
+
+Applying Taylor series expansion of $e^{-x-x^2}$:
+\begin{align*}
+    e^{-x-x^2} = 1 + (-x-x^2) + \frac{(-x-x^2)^2}{2!} + \frac{(-x-x^2)^3}{3!} + ...
+    \\
+    e^{-x-x^2} = 1 + -x- x^2  + \frac{x^2}{2} + \frac{x^4}{2} + x^3 + ...
+\end{align*}
+
+Since $0<x<1$, all terms $\frac{x^3}{3!}$ and beyond would be very small and can be neglected.
+
+\begin{align*}
+    e^{-x-x^2} = 1 + -x- \frac{x^2}{2} 
+\end{align*}
+
+Hence, we can clearly see that 
+
+\begin{align*}
+    e^{-x-x^2} = 1 + -x- \frac{x^2}{2} \leq 1-x 
+    \\
+    \log( e^{-x-x^2})\leq \log(1-x)
+    \\
+    -x-x^2\leq\log(1-x)
+\end{align*}
+
+
+}
 
 \theorem{(Mistake bound of WMA) Let $M^{(t)},\;m_i^{(t)}$ respectively be the number of mistakes that have been made by the WMA learner and the $i$-th hypothesis until the time step $t$, and $N, \eta$ be the number of experts and the penalty rate. Then, $M^{(t)}$ is upper-bounded as:
 $$M^{(t)}\leq 2(1+\eta)m_i^{(t)} + \frac{2\ln{N}}{\eta}$$}\label{theorem:wma}
@@ -314,7 +385,34 @@ In Step 4, we receive experts' predictions as $\textbf{x}^{(t)}$. $\textbf{x}^{(
 
 With this algorithm, we try to introduce randomization to improve the mistake and regret bounds, as we will see in the proofs below. We state a lemma to help with our further derivations
 \lemma{$e^x\geq 1+ x$ for all $x\in\mathbb{R}$.}\label{lemma:2}
-\proof{This inequality can be shown by applying Taylor expansion to $e^x$.}
+\proof{
+Let us define $f(x)$ as follows:
+
+\begin{align*}
+    f(x) = e^x - (1+x)
+\end{align*}
+Taking first derivative of $f(x)$
+\begin{align*}
+    f'(x) = e^x - 1
+\end{align*}
+Equating it to zero, we get $x = 0$. Now taking double derivative of $f(x)$:
+\begin{align*}
+    f''(x) = e^x
+    \\
+    f''(0) = 1 > 0
+\end{align*}
+
+Hence, $f(0)$ is a minima.
+\begin{align*}
+    f(x)  \geq f(0) \:\:\:\:\:\: \forall x \in R
+    \\
+    e^x - (1+x)  \geq 0
+    \\
+    e^x  \geq (1+x)
+\end{align*}
+
+
+}
 
 \theorem{(Relative Mistake bound of RWMA) Let $M^{(t)}, m_i^{(t)}$ respectively be the number of mistakes that have been made by the RWMA learner and the $n$-th hypothesis until the time step $t$, and $N, \eta$ be the number of experts and the penalty rate. Then, expected mistakes of learner $\mathbb{E}[M^{(t)}]$ is upper-bounded as:
 $$\mathbb{E}[M^{(t)}]\leq (1+\eta)m_n^{(t)} + \frac{\log{N}}{\eta}$$}\label{theorm:rwma}
@@ -450,7 +548,14 @@ In fact, these algorithms are not limited to Prediction with Expert Advice (PWEA
 
 
 
-In addition to WMA and RWMA, there exists a meta algorithm known as the multiplicative weights algorithm. As discussed in the article \cite{MWA}, the decision $i$ is chosen with probability proportional to the weight $w_i^{(t)}$. This is the same as distribution over decisions $p^{(t)}=\{w_i^{(t)}/\Phi^{(t)},.....,w_n^{(t)}/\Phi^{(t)}\}$, with the weight updating and penalty steps being the same as WMA. This is not a majority algorithm, it substitutes the majority by calculating the proportional probability at each step.
+In addition to WMA and RWMA, there exists a meta algorithm known as the multiplicative weights algorithm. As discussed in the article \cite{MWA}, the weight update step is -
+\begin{align*}
+    w_i^{(t+1)}=w_i^{(t)}(1-\eta m_i^{(t+1)})
+\end{align*}
+where $m_i$ is the number of mistakes by expert i. As we can see there is a concept of multiplicative weights in this algorithm. To give a better insight, the potential function of this algorithm is-
+\begin{align*}
+    \Phi_{t+1}=\sum_j w_j^{(t)}.exp(-\eta m_j^{(t)})
+\end{align*}
 \\
 
 %\section*{References}
