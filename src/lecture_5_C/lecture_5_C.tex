@@ -123,9 +123,9 @@ In geometry, a hyperplane is a subspace whose dimension is one less than that of
 For a 3D feature space, the hyperplanes are 2d planes. \\
 For a 2D feature space, the hyperplane is a 1D line.\\
 Hyperplanes can be more formally defined as :
-$$w*x, w \in R^n, x \in R^n$$
+$$w\cdot x, w \in \mathbb{R}_+^N, x \in \mathbb{R}_+^N$$
 General prediction rule for binary classification :
-$$ y = sign(w*x - N) $$
+$$ y = sign(w\cdot x - N) $$
 
 
 \subsection{Perceptron Algorithm vs Winnow Algorithm}
@@ -139,13 +139,13 @@ $$ y = sign(w*x - N) $$
   \hline
   \textbf{Type of weights} & Can be both positive and negative & Non negative weights \\ 
   \hline
-  \textbf{Type of inputs} & $$ x^t \in R^N $$  & $$ x^t \in {0,1}^N $$ \\ 
+  \textbf{Type of inputs} & $$ x^t \in \mathbb{R}_+^N $$  & $$ x^t \in {0,1}^N $$ \\ 
   \hline
   \textbf{Feature selection} & Uses all features given by nature  & only uses certain subset of features which are useful \\ 
   \hline
   \textbf{Weight initialisation} & All weights set to 0  & All weights set to 1 \\ 
   \hline
-  \textbf{Prediction rule} & $$ y^t =sign(w^t*x^t) $$  & $$ y^t =w^t*x^t > N $$ \\
+  \textbf{Prediction rule} & $$ y^t =sign(w^t\cdot x^t) $$  & $$ y^t =w^t\cdot x^t > N $$ \\
   \hline
 \end{tabular}
 \end{center}
@@ -176,12 +176,20 @@ Bias term introduces an effect of shifting the hyperplane away from the origin i
 
 \subsection{Algorithm}
 The weights are initialized as 0. Then for each time step $t$, we receive the input vector $x^{(t)})$. Then, we predict the output with $\hat{y}^{(t)} = sign(\langle w^{(t)}, x^{(t)} \rangle)$. Next we update the weights. If the prediction was incorrect, then we update according to the rule $w^{(t+1)} = w^{(t)} + y_t x^{(t)}$. If the prediction was correct, we make no changes, so $w^{(t+1)} = w^{(t)}$. The update values of $w$ can become negative.
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.5\linewidth]{perceptron_algo.png}
+
+\begin{algorithm}[H]
 \caption{Perceptron Algorithm Pseudocode}
-\label{fig:test}
-\end{figure}
+\label{algo:perceptron}
+\begin{algorithmic}[1]
+\STATE $\boldsymbol{w}^{(0)} \xleftarrow{} 0 $  \hfill $\triangleright$ Weights initialise
+\FOR{$t=1,\;\dots,\;T$}
+\STATE \textsc{Receive} ($\boldsymbol{x}^{(t)} \in \mathbb{R}^N$) \hfill $\triangleright$ Get input vector
+\STATE $\hat{y}^{(t)} = \text{sign} \left( \langle \boldsymbol{w}^{(t-1)}, \boldsymbol{x}^{(t)} \rangle \right)$ \hfill $\triangleright$ Perceptron prediction equation
+\STATE \textsc{Receive} ($y^{(t)}\in \{1,-1\}$) \hfill $\triangleright$ Get ground truth
+\STATE $\boldsymbol{w}^{(t)} = \boldsymbol{w}^{(t-1)} + y^{(t)} \cdot \boldsymbol{x}^{(t)} \cdot \boldsymbol{1}[y^{(t)}\neq\hat{y}^{(t)}] $ \hfill $\triangleright$ Weight update
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
 
 The perceptron algorithm is fast since prediction is just a dot product, and update is a sum. However, it is not a large margin classifier since we are only taking into account the sign without any notion of margin. This algorithm also does not work with non-separable data.\\
 
@@ -272,7 +280,7 @@ We saw the performance of the Perceptron algorithm in the previous section and i
 
 \begin{enumerate}
     \item Input :  $x^{(t)} \in {0,1} $
-    \item Output : $\hat{y}^{(t)} = w^{(t}*x^{(t)} > N$
+    \item Output : $\hat{y}^{(t)} = w^{(t)}\cdot x^{(t)} > N$
     \item Assumption : $y=h^*(x)$ (Perfect hypothesis with K features)
 \end{enumerate}
 
