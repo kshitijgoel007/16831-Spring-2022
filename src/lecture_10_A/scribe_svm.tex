@@ -103,21 +103,10 @@ In the last lectures, we covered the algorithms of Gradient Descent, and Stochas
 
 %You may format the scribes in any way you like, aside from changing font style, size and page format. Please use subsections and paragraphs to increase the readability of your notes.
 
-%Length requirement 1-2 pages.
+% %Length requirement 1-2 pages.
         
-\section{Introduction}
-Online techniques can be very useful for supervised learning. In supervised learning, there is a distinct training stage where the parameters are determined. Then, in the testing stage, we leave parameters fixed, receive new data and make inferences on the new data.
-
-Compared to supervised learning, online learning interweaves the training and testing steps. In online learning, there's two main steps: an update step where we learn our parameters, and a prediction step where we make an inference and get feedback from the environment. Some supervised learning algorithms can also be solved by using online learning methods.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.5\textwidth]{images/sl_ol.png}
-    \caption{Supervised learning can be solved using online learning methods.}
-    \label{fig:sl_ol}
-\end{figure}
-
-In this lecture, we will focus on Support Vector Machines, an approach for classification with both an online learning and supervised learning interpretation.
+% \section{Introduction}
+% Online techniques can be very useful for supervised learning. In supervised learning, there is a distinct training stage where the parameters are determined. Then, in the testing stage, we leave parameters fixed, receive new data and make inferences on the new data. Compared to supervised learning, online learning interweaves the training and testing steps. In online learning, there's two main steps: an update step where we learn our parameters, and a prediction step where we make an inference and get feedback from the environment. Some supervised learning algorithms can also be solved by using online learning methods. In this lecture, we will focus on Support Vector Machines, an approach for classification with both an online learning and supervised learning interpretation.
 
 
 \section{Online SVM}
@@ -128,19 +117,21 @@ $$f(\alpha*w + (1-\alpha)*v) \leq \alpha*f(w) +(1-\alpha)*f(v) \; for \; all \; 
 A key property is that the convex function has a global minimum which means it is suitable for optimization problems. 
 
 \subsection{Hyperplanes}
-In order to better understand the SVM algorithm, we first need to grasp the concept of hyperplanes. A hyperplane is a subspace whose dimension is $n-1$ of the main space. For example, in a 2D space (e.g a 2D surface), the hyperplane is a 1D line. More importantly, a hyperplane is a subspace that divides the data points into n sections. In the figure ~\ref{fig:sfig1}, a 2D plane separates the 3D points into 2 regions
+A hyperplane is a subspace whose dimension is $n-1$ of the main space. For example, in a 2D space (e.g a 2D surface), the hyperplane is a 1D line. More importantly, a hyperplane is a subspace that divides the data points into n sections. 
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=.2\linewidth]{hyperplane.png}
-  \caption{Hyperplane}
-  \label{fig:sfig1}
-\end{figure}
+% In the figure ~\ref{fig:sfig1}, a 2D plane separates the 3D points into 2 regions.
+
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=.2\linewidth]{hyperplane.png}
+%   \caption{Hyperplane}
+%   \label{fig:sfig1}
+% \end{figure}
 
 \subsubsection{Hyperplanes in 2D}
 \begin{figure}[H]
   \centering
-  \includegraphics[width=.3\linewidth]{2Dplane.png}
+  \includegraphics[width=.2\linewidth]{images/hyperplane.png}
   \caption{Hyperplane in 2D}
   \label{fig:sfig2}
 \end{figure}
@@ -173,7 +164,7 @@ $$w \cdot x + b = 0$$
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=.6\linewidth]{normal_distance.png}
+  \includegraphics[width=.4\linewidth]{images/distance.png}
   \caption{Normal distance between a hyperplane and the origin in 2D}
   \label{fig:sfig3}
 \end{figure}
@@ -190,7 +181,7 @@ $$w \cdot x + b = 0$$
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=.48\linewidth]{two_lines.png}
+  \includegraphics[width=.4\linewidth]{images/distance_2_lines.png}
   \caption{Normal distance between two parallel hyperplanes in 2D}
   \label{fig:sfig4}
 \end{figure}
@@ -210,12 +201,12 @@ We can extend this same idea to a higher dimension. For instance,a 3D plane will
     \item Hence, the pependicular distance between these two hyperplanes: $\frac{b+1}{||w||} - \frac{b-1}{||w||} = \frac{2}{||w||}$
 \end{enumerate}
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=.49\linewidth]{two_parallel.png}
-  \caption{Normal distance between two parallel hyperplanes in 3D}
-  \label{fig:sfig5}
-\end{figure}
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=.49\linewidth]{two_parallel.png}
+%   \caption{Normal distance between two parallel hyperplanes in 3D}
+%   \label{fig:sfig5}
+% \end{figure}
 
 % }
 
@@ -232,7 +223,7 @@ A margin ($\gamma$) is the distance between an interior point and the separating
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.6\textwidth]{images/support_vector.png}
+    \includegraphics[width=0.6\textwidth]{images/margin_def.png}
     \caption{Support vectors are the points closest to the decision boundary, or separating hyperplane. The margin is the distance between support vector and hyperplane.}
     \label{fig:support_vectors}
 \end{figure}
@@ -288,7 +279,7 @@ This minimization problem is known as the "Primal Formulation" of a linear SVM. 
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\textwidth]{images/hard_vs_soft.png}
+    \includegraphics[width=0.8\textwidth]{images/hardsoft.png}
     \caption{Hard-margin SVM achieves a narrow margin, but Soft-Margin SVM allows for a wider margin to be achieved.}
     \label{fig:hard_v_soft}
 \end{figure}
@@ -301,7 +292,7 @@ Soft-Margin SVM introduces a slack constraint, which represents how mistake-tole
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.6\textwidth]{images/slack_variable.png}
+    \includegraphics[width=0.6\textwidth]{images/slack.png}
     \caption{The slack constraint allows the Soft-Margin SVM to make mistakes in order to achieve a larger margin. The constraint allows the algorithm to trade off between optimizing for a larger margin or more accurate classification.}
     \label{fig:my_label}
 \end{figure}
@@ -358,12 +349,12 @@ We merge the bias term, $b$, into the weight vector, $\mathbf{w}$. We move the s
 
 The problem with this objective function is that the component $1 - y_i \mathbf{w}^T \mathbf{x}_i$ becomes is a very large negative value for "easy" data points that are correctly classified by a large margin, meaning the data points lie far from the separating hyperplane. For mistaken points, the value $1 - y_i \mathbf{w}^T \mathbf{x}_i$ is small, and is thus overpowered by large positive values of correct points.
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=.6\linewidth]{images/spectrum_highlight.png}
-  \caption{We want to penalize the algorithm for mistakes, and weakly correct data points. We want to ignore "very correct" data, by focusing on the right hand side of this spectrum.}
-  \label{fig:spectrum}
-\end{figure}
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=.6\linewidth]{images/spectrum_highlight.png}
+%   \caption{We want to penalize the algorithm for mistakes, and weakly correct data points. We want to ignore "very correct" data, by focusing on the right hand side of this spectrum.}
+%   \label{fig:spectrum}
+% \end{figure}
 
 
 As shown in figure ~\ref{fig:spectrum}, when the SVM classifies a data point "very" correctly, the slack variable is close to negative infinity. When it's highly mistaken, the slack variable is close to positive infinity. 
@@ -377,12 +368,12 @@ We use the Hinge loss to resolve this problem so that we only penalize for mista
 \end{aligned}
 \end{equation}
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=.6\linewidth]{hinge.png}
-  \caption{Hinge loss function to replace the original function}
-  \label{fig:hinge}
-\end{figure}
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=.6\linewidth]{hinge.png}
+%   \caption{Hinge loss function to replace the original function}
+%   \label{fig:hinge}
+% \end{figure}
 
 The regularization term $\frac{\lambda}{2}||w||^2$ is quadratic. The loss function is linear $ \frac{1}{N}\sum_{i}^N max\{0,1-y_i w^T x_i\}$. Therefore, this function is convex. \textbf{This is Online Mirror Descent with quadratic regularization and a piece-wise linear loss function.}
 
@@ -398,12 +389,12 @@ The regularization term $\frac{\lambda}{2}||w||^2$ is quadratic. The loss functi
 For a differentiable convex function, there's only one line that lower bound the function at any point.
 For a non-differentiable convex function, there's many (infinite) lines that lower bound the function. These are called \textbf{subgradients}.
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=.6\linewidth]{images/subgrads.png}
-  \caption{Convex differentiable functions have one lower bound to the function at a given point, known as the gradient. Convex, non-differentiable functions has infinitely many.}
-  \label{fig:subgrads}
-\end{figure}
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=.6\linewidth]{images/subgrads.png}
+%   \caption{Convex differentiable functions have one lower bound to the function at a given point, known as the gradient. Convex, non-differentiable functions has infinitely many.}
+%   \label{fig:subgrads}
+% \end{figure}
 
 The hinge loss function is not differentiable. For the hinge loss function, there are many possible sub-gradients. 
 We will use two subgradients:
