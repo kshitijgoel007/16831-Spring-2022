@@ -10,10 +10,12 @@
 \usepackage{physics}
 
 \usepackage{amsmath}
-\usepackage{algorithmic}
+% \usepackage{algorithmic}
+% \usepackage{algorithm}
+% \usepackage{algpseudocode}
 \usepackage{algorithm}
-\usepackage{algpseudocode}
-
+ %on linux you may need to run sudo apt-get install texlive-full to install algorithm.sys
+\usepackage{algorithmic}
 
 \DeclareMathOperator*{\minimize}{min}
 \DeclareMathOperator*{\maximize}{max}
@@ -232,24 +234,24 @@ From the above derivation, we could generalize the FTRL-LinLoss to be OMD. The O
   \caption{Online Mirror Descent}
   \label{algo:omd}
   \begin{algorithmic}[1]
-    \Function{OMD(Convex Set $\mathcal{S}$, $g:\mathbb{R}^D \rightarrow \mathcal{S}$)}{}
-        \For{$t=1, 2,\,\cdots,\;T$}
-            \State \textsc{Receive} ($f^{(t)}:\mathcal{S}\rightarrow \mathbb{R}$)
-            \State $\bm{\theta}^{(t+1)} = \bm{\theta}^{(t)} - \eta \bm{z}^{(t)}$, $\bm{z} \in \partial f^{(t)}(\bm{w}^{(t)})$
+        \FOR{$t=1, 2,\,\cdots,\;T$}
+            \STATE \textsc{Receive} ($f^{(t)}:\mathcal{S}\rightarrow \mathbb{R}$)
+            \STATE $\bm{\theta}^{(t+1)} = \bm{\theta}^{(t)} - \eta \bm{z}^{(t)}$, $\bm{z} \in \partial f^{(t)}(\bm{w}^{(t)})$
             \hfill $\triangleright$ Dual parameter update
-            \State $\bm{w}^{(t+1)} = g(\bm{\theta}^{(t+1)})$
+            \STATE $\bm{w}^{(t+1)} = g(\bm{\theta}^{(t+1)})$
             \hfill $\triangleright$ Primal parameter update
+        \ENDFOR
 
   \end{algorithmic}
 \end{algorithm}
 
 OMD is a generic algorithm for solving the online convex optimization problem. Specifically, the above OMD algorithm focuses on linear loss and convex regularizer cases.
 
-To better understand the OMD, the geometry of the functions might help. The below graph is a simulation of the online mirror descent process. The online gradient descent (which we are familiar with) is directly updating the primal parameter ($w$) in primal space by taking one gradient step. However, for online mirror descent, instead of updating the parameter in primal space, we could optimize the parameter in dual space ($\theta$). Then we could project it to the primal space and get the primal parameter ($w$). 
+To better understand the OMD, the geometry of the functions might help. The Figure \ref{fig:dual_primal} is a simulation of the online mirror descent process. The online gradient descent (which we are familiar with) is directly updating the primal parameter ($w$) in primal space by taking one gradient step. However, for online mirror descent, instead of updating the parameter in primal space, we could optimize the parameter in dual space ($\theta$). Then we could project it to the primal space and get the primal parameter ($w$). 
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.6\textwidth]{geometry.png}
+    \includegraphics[width=0.6\textwidth]{geometry.jpg}
     \caption{Illustration of online mirror descent process}
     \label{fig:dual_primal}
 \end{figure}
@@ -265,16 +267,16 @@ Given a primal set (i.e. parameter, function set) $\{ \psi(w), w \}$, there exis
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.6\textwidth]{dual_set_graph.JPG}
+    \includegraphics[width=0.6\textwidth]{f2.jpg}
     \caption{Dual set visualization}
     \label{fig:dual_set_graph}
 \end{figure}
 
-Now suppose one draws the line $<\theta, w> - \psi(w)$ through the origin, one can visualize the vertical incremental distance between points of $\psi(w)$ and the line. Computing the argument that would output the maximum distance between the sloped line and $\psi(w)$ turns out to be $w*$, or the input argument for the sloped line. A visualization is shown in Figure \ref{fig:dual_set_argm} below. The value of that maximum distance also turns out to be $\psi^*(\theta) = \max_w (<\theta, w> - \psi(w))$. Thus, the definition of the convex conjugate function is: $\psi^*(\theta) = \max_w (<\theta, w> - \psi(w))$. 
+Now suppose one draws the line $<\theta, w> - \psi(w)$ through the origin, one can visualize the vertical incremental distance between points of $\psi(w)$ and the line. Computing the argument that would output the maximum distance between the sloped line and $\psi(w)$ turns out to be $w*$, or the input argument for the sloped line. A visualization is shown in Figure \ref{fig:dual_set_argmax} below. The value of that maximum distance also turns out to be $\psi^*(\theta) = \max_w (<\theta, w> - \psi(w))$. Thus, the definition of the convex conjugate function is: $\psi^*(\theta) = \max_w (<\theta, w> - \psi(w))$. 
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.6\textwidth]{dual_set_argmax_w.JPG}
+    \includegraphics[width=0.6\textwidth]{f3.jpg}
     \caption{Dual set argmax illustration}
     \label{fig:dual_set_argmax}
 \end{figure}
@@ -300,7 +302,7 @@ Let Figure \ref{fig:bregman_divergence_graph} shown below be a visualization for
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\textwidth]{bregman_divergence_graph.JPG}
+    \includegraphics[width=0.8\textwidth]{f4.jpg}
     \caption{Bregman divergence graph illustration}
     \label{fig:bregman_divergence_graph}
 \end{figure}
@@ -321,13 +323,13 @@ Applying the Fenchel-Young inequality gives us the following lower bound:
     \psi (u) - u \cdot \theta^{(T+1)} \geq -\psi^* (\theta^{(T+1)})
 \end{gather*}
 
-Then, apply telescoping to the right-hand side of the inequality introduces the Bregman Divergence term:
+Then, apply telescoping to the right-hand side of the inequality introduces the Bregman Divergence term. In the last line of the derivation below, the right hand side is broken up into two terms, where the second term is considered the first-order approximation of $\psi (w)$ and the third term is the Bregman Divergence.
 
 \begin{gather*}
     -\psi^* (\theta^{(T+1)}) = -\psi^* (\theta^{(T+1)}) - \psi^* (\theta^{(1)}) + \psi^* (\theta^{(1)}) \\
     -\psi^* (\theta^{(T+1)}) = -\psi^* (\theta^{(T+1)}) - \psi^* (\theta^{(T)}) + \psi^* (\theta^{(T)}) - \dots - \psi^* (\theta^{(1)}) + \psi^* (\theta^{(1)}) \\ 
     -\psi^* (\theta^{(T+1)}) = - \psi^* (\theta^{(1)}) - \sum_{t=1}^T (\psi^* (\theta^{(t)}) - \psi^* (\theta^{(t)})) \\ 
-    -\psi^* (\theta^{(T+1)}) = - \psi^* (\theta^{(1)}) - \sum_{t=1}^T (\nabla \psi^* (\theta^{(t)}) \cdot (\theta^{(t+1)} - \theta^{(t)}) + D_{\psi^*} (\theta^{(t+1)}||\theta^{(t)}) \\
+    -\psi^* (\theta^{(T+1)}) = - \psi^* (\theta^{(1)}) - \underset{\text{$1^{st}$ order approx. of $\psi (w)$}}{\underline{\sum_{t=1}^T (\nabla \psi^* (\theta^{(t)}) \cdot (\theta^{(t+1)} - \theta^{(t)})}} + \underset{\text{Bregman Divergence}}{\underline{D_{\psi^*} (\theta^{(t+1)}||\theta^{(t)})}} \\
 \end{gather*}
 
 Substituting the definition of the convex conjugate to be $\psi^* (\theta^{(1)}) = -\psi (w^{(1)})$ and the convex conjugate derivative property $\nabla_\theta \psi^* (\theta) = w^*$, the equation becomes:
@@ -348,11 +350,11 @@ Substituting $\psi^* (-z^{(1:T)})$ back into the lower bound inequality and by r
      \sum_{t=1}^T <w^{(t)}, z^{(t)}> - <u, z^{(1:T)} > \leq \psi (u) - \psi (w^{(1)}) + \sum_{t=1}^T D_{\psi^*} (-z^{(1:t)}||-z^{(1:t-1)}) 
 \end{gather*}
 
-Thus, the OMD regret bound is defined by:
+Thus, the OMD regret bound is defined by the algorithm shown below. In the last line of the derviation on the right-hand-side, there are three terms. The first term is the regularization term, and the third term is the Bregman Divergence term under the convex conjugate of the regularization function.
 
 \begin{gather*}
     \sum_{t=1}^T <w^{(t)}, z^{(t)}> - <u, z^{(1:T)} > \leq \psi (u) - \psi (w^{(1)}) + \sum_{t=1}^T D_{\psi^*} (-z^{(1:t)}||-z^{(1:t-1)})  \\ 
-    R(u) \leq \psi (u) - \psi (w^{(1)}) + \sum_{t=1}^T D_{\psi^*} (-z^{(1:t)}||-z^{(1:t-1)}) \\
+    R(u) \leq \underset{\text{regularization}}{\underline{\psi (u)}} - \psi (w^{(1)}) + \sum_{t=1}^T \underset{\text{Bregman Divergence}}{\underline{D_{\psi^*} (-z^{(1:t)}||-z^{(1:t-1)})}} \\
 \end{gather*}
 
 % \nocite{*}
