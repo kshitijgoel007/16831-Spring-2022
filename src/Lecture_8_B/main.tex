@@ -79,9 +79,9 @@
 In the previous lectures, we studied general online optimization algorithms. Recall that online optimization consisted of the following steps:
 
 \begin{enumerate}
-    \item Predict the weights (parameters).
-    \item Receive the loss function from nature.
-    \item Compute the loss using the predicted weights and given loss function.
+    \item Predict the weights $\textbf{w}^{(t)}$ (parameters) .
+    \item Receive the loss function $f^{(t)}$ from nature.
+    \item Compute the loss $f^{(t)}(\textbf{w}^{(t)})$ using the predicted weights $\textbf{w}^{(t)}$ and given loss function $f^{(t)}$.
 \end{enumerate}
 
 In particular, we read about the following two algorithms:
@@ -146,11 +146,11 @@ Taking a convex linear loss function like we did for FTL ($f^{(t)} = w \cdot z^{
 
 where
 
-\centerline{$L = \max_{\textbf{z}} \Vert \textbf{z} \Vert_2$}
+\centerline{$L = \max\limits_{\textbf{z}} \Vert \textbf{z} \Vert_2$}
 
-\centerline{$B = \max_{\textbf{u} \in S} \Vert \textbf{u} \Vert_2$}
+\centerline{$B = \max\limits_{\textbf{u} \in S} \Vert \textbf{u} \Vert_2$}
 
-As can be seen, the regret for a convex linear loss function is now \textbf{no regret} due to the quadratic regularizer.
+The solution space S is a convex set. As can be seen, the regret for a convex linear loss function is now \textbf{no regret} due to the quadratic regularizer.
 
 Using online convex optimization, the stability of FTRL is generalized to:
 
@@ -197,7 +197,7 @@ The gradient of Eq. \ref{eq:1} with respect to the parameters $\textbf{w}$ is:
     \textbf{z}^{(1:t)} = \sum_{i=1}^{t} \textbf{z}^{(i)}
 \end{align}
 
-Let us substitute $ \textbf{z}^{(1:t)}$ in Eq. \ref{eq:2} with $\bm{\theta}^{(t+1)}$, where we call $\bm\theta$ a \textbf{parameter of the dual space}:
+Substituting $ \textbf{z}^{(1:t)}$ in Eq. \ref{eq:2} with a function of $\bm{\theta}^{(t+1)}$, where $\bm\theta$ a \textbf{parameter of the dual space}:
 \begin{align}
 \label{eq:3}
     \bm{$\theta$}^{(t+1)} \triangleq  - \textbf{z}^{(1:t)}
@@ -240,7 +240,7 @@ Using Eq. \ref{eq:3} and defining $\textbf{w}$ as a \textbf{parameter of the pri
 We can shorten Eq. \ref{eq:6} by defining a \textbf{mirror/linking function} $g: \bm\theta \rightarrow \textbf{w}$ that maps from the dual space $\bm{\theta}$ to the primal space $\mathbf{w}$ such that:
 \begin{align}
 \label{eq:7}
-    \textbf{w}^{(t+1)} \triangleq g(\bm\theta^{(t+1)}) \triangleq \text{arg} \max\limits_{\textbf{w}} \langle \textbf{w}, \;\bm{$\theta$}^{(t+1)} \rangle - \psi(\textbf{w})
+    \textbf{w}^{(t+1)} = g(\bm\theta^{(t+1)}) \triangleq \text{arg} \max\limits_{\textbf{w}} \langle \textbf{w}, \;\bm{$\theta$}^{(t+1)} \rangle - \psi(\textbf{w})
 \end{align}
 
 \subsubsection{Derive OMD}
@@ -262,8 +262,8 @@ OMD is therefore a generic algorithm for solving online convex optimization (lin
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.7\textwidth]{figs/OMD.png}
-    \caption{Online Mirror Descent visualization}
+    \includegraphics[width=0.7\textwidth]{figs/Page1.jpg}
+    \caption{Online Mirror Descent visualization (adapted from slides)}
     \label{fig:omd}
 \end{figure}
 
@@ -454,8 +454,8 @@ We have thus proved the generic upper regret bound of OMD.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.5\textwidth]{figs/conjugate-geometry.png}
-    \caption{Conjugate Function Geometry}
+    \includegraphics[width=0.5\textwidth]{figs/Page2.jpg}
+    \caption{Conjugate Function Geometry (adapted from slides)}
     \label{fig:conj}
 \end{figure}
 
@@ -466,8 +466,8 @@ To get a better idea of conjugate functions, Figure (3) shows a geometrical inte
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.7\textwidth]{figs/bregman_geometry.png}
-    \caption{Bregman Divergence Geometry}
+    \includegraphics[width=0.7\textwidth]{figs/Page3.jpg}
+    \caption{Bregman Divergence Geometry (adapted from slides)}
     \label{fig:bregman}
 \end{figure}
 
