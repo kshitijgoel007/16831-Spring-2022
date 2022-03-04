@@ -14,8 +14,9 @@
 
 \DeclareMathOperator*{\minimize}{min}
 \DeclareMathOperator*{\maximize}{max}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
 
-\def\PP{\mathcal{P}}
 \def\RR{\mathbb{R}}
 \def\BB{\mathbb{B}}
 \def\AA{\mathbb{A}}
@@ -36,6 +37,7 @@
 \def\II{\mathcal{I}}
 \def\ig{\mathcal{\gemini}}
 \def\Lev{\textscl}
+
 
 
 \usepackage{algorithm}
@@ -99,6 +101,43 @@
 \section{Review}
 In the last lectures, we covered the algorithms of Gradient Descent, and Stochastic Gradient Descent (SGD). Gradient descent is an approach for minimizing convex, differentiable functions. Alternative gradient descent algorithms stochastically sample the data (SGD) or observe the data in mini-batches (Batch Gradient Descent), while maintaining convergence to the minimum solution. We observed how Stochastic Gradient Descent can be represented as an online convex optimization problem, and in particular, is a special case of Online Mirror Descent (OMD). 
 
+
+\subsection{Gradient Descent}
+The intuition of gradient descent, is that if we want to locate the minimum of some objective function $f$, we must move in the direction opposite to the gradient. The gradient with respect to the entire dataset. Then, the weights are updated by subtracting the gradient from the current set of weights.
+
+\begin{algorithm}[H]
+\caption{Gradient Descent}
+\label{algo:gd}
+\begin{algorithmic}[1]
+\STATE $\textbf{w}^{(0)} \leftarrow 0 \in R^N$ \hfill
+\STATE $\eta > 0$ \hfill
+\FOR{$t=0,\;\cdots,\;T-1$}
+\STATE $\mathbf{v}^{(t)} = \nabla f (\mathbf{w}^{(t-1)})$\hfill 
+
+\STATE $\mathbf{w}^{(t)} =  \mathbf{w}^{(t-1)} - \eta\mathbf{v}^{(t)}$ \COMMENT{Mirror projection} \hfill 
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Stochastic Gradient Descent}
+Stochastic Gradient Descent (SGD) is a convex optimizer that does not require the exact gradient, but optimizes by taking steps in the gradient direction. In each iteration of SGD, we sample from a data distribution, obtaining a single sample or minibatch of samples. Then, we compute the gradient with respect to the sampled point, which in expectation equals the true gradient. Then, the weights are updated by subtracting the gradient from the current set of weights, which optimizes in the direction opposite to the gradient.
+
+\begin{algorithm}[H]
+\caption{Stochastic Gradient Descent}
+\label{algo:sgd}
+\begin{algorithmic}[1]
+\STATE $\textbf{w}^{(0)} \leftarrow 0 \in R^N$ \hfill
+\STATE $\eta > 0$ \hfill
+\FOR{$t=0,\;\cdots,\;T-1$}
+\STATE $z \sim \DD$ \COMMENT{Sample from data distribution}\hfill 
+\STATE $\mathbf{v}^{(t)} = \nabla f_z (\mathbf{w}^{(t-1)})$ \COMMENT{Expectation is true gradient}\hfill 
+
+\STATE $\mathbf{w}^{(t)} =  \mathbf{w}^{(t-1)} - \eta\mathbf{v}^{(t)}$ \COMMENT{Mirror projection} \hfill 
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+SGD achieves similar convergence bounds as gradient descent, which computes $\mathbf{v}^{(t)}$ over the entire dataset.
 %This section serves as a review of the previous lecture and any other context required to frame the content of the current lecture. 
 
 %You may format the scribes in any way you like, aside from changing font style, size and page format. Please use subsections and paragraphs to increase the readability of your notes.
@@ -144,7 +183,7 @@ Another version is the 3-dimensional version: add a weight 1 to the x vector, an
 $$w \cdot x  = 0 \;\text{(offset\; / \;bias\; inside)}$$
 $$w \in \RR^3 $$
 
-\textbf{Note:} An important property of this hyperplane is that you are free to choose any normalization you want on $\mathbf{w}$. You can multiply this side of the equation by any scalar $\lambda$. $\lambda$ can be anything and the equation still describes the same line.
+\textbf{Note:} An important property of this hyperplane is that you are free to choose any normalization you want on $\mathbf{w}$. You can multiply this side of the equation by any scalar $\lambda$, and the equation still describes the same line.
  
 $$w_1 x_1 + w_2 x_2 + b = 0$$
 $$\lambda(w_1 x_1 + w_2 x_2 + b )= 0$$
@@ -161,6 +200,19 @@ $$w \cdot x + b = 0$$
     \item Then we can rearrange: $\rho = \frac{b}{||w||}$
     
 \end{enumerate}
+
+$$\mathbf{w}\cdot \mathbf{x}+b=0$$
+$$\mathbf{w}\cdot \mathbf{x}= -b$$
+$$\frac{\mathbf{w} \cdot \mathbf{x} }{||\mathbf{w}||}= \frac{-b}{||\mathbf{w}||}$$
+$$\frac{w_1 x_1}{\sqrt{w_1^2+w_2^2}} + \frac{w_2 x_2}{\sqrt{w_1^2+w_2^2}}= \frac{-b}{||\mathbf{w}||}$$
+We know
+$x*\cos{\theta} + y*\sin{\theta} = \rho$ in polar coordinates
+where $$\rho = \frac{-b}{||\mathbf{w}||}$$
+$$\cos{\theta} = \frac{w_1}{\sqrt{w_1^2+w_2^2}}$$
+$$\sin{\theta} = \frac{w_2}{\sqrt{w_1^2+w_2^2}}$$
+We can check this by $$cos^2 (\theta) + sin^2 (\theta) = 1$$
+$$\frac{w_1^2}{w_1^2+w_2^2}+ \frac{w_2^2}{w_1^2+w_2^2} = 1$$
+In the polar coordinates, $\rho$ is the distance to the origin, where in this case $\rho = \frac{-b}{||\mathbf{w}||}$.
 
 \begin{figure}[H]
   \centering
@@ -201,12 +253,12 @@ We can extend this same idea to a higher dimension. For instance,a 3D plane will
     \item Hence, the pependicular distance between these two hyperplanes: $\frac{b+1}{||w||} - \frac{b-1}{||w||} = \frac{2}{||w||}$
 \end{enumerate}
 
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=.49\linewidth]{two_parallel.png}
-%   \caption{Normal distance between two parallel hyperplanes in 3D}
-%   \label{fig:sfig5}
-% \end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=.49\linewidth]{images/3dparallel.png}
+  \caption{Normal distance between two parallel hyperplanes in 3D}
+  \label{fig:sfig5}
+\end{figure}
 
 % }
 
@@ -297,7 +349,7 @@ Soft-Margin SVM introduces a slack constraint, which represents how mistake-tole
     \label{fig:my_label}
 \end{figure}
 
-In general, we want the slack variable to be as small as possible. A small $\xi_i$ allows for small mistakes to be made by the algorithm. Small mistakes are mistakes close to the decision boundary, and not far from the hyperplane corresponding to the true label. A large $\xi_i$ means that the SVM is allowing for large mistakes to be made.
+In general, we want a reasonable small slack variable. A small $\xi_i$ allows for small mistakes to be made by the algorithm. Small mistakes are mistakes close to the decision boundary, and not far from the hyperplane corresponding to the true label. A large $\xi_i$ means that the SVM is allowing for large mistakes to be made.
 
 \subsubsection{Soft-Margin SVM Objective}
 In order to allow for some misclassification of the SVM, we can add $- \xi_i$ to the original hard-margin constraint, $y_i(w \cdot x_i + b) \geq 1$. The constraint becomes $y_i(w \cdot x_i + b) \geq 1 - \xi_i$. 
@@ -357,10 +409,10 @@ The problem with this objective function is that the component $1 - y_i \mathbf{
 % \end{figure}
 
 
-As shown in figure ~\ref{fig:spectrum}, when the SVM classifies a data point "very" correctly, the slack variable is close to negative infinity. When it's highly mistaken, the slack variable is close to positive infinity. 
+When the SVM classifies a data point "very" correctly, the slack variable is close to negative infinity. When it's highly mistaken, the slack variable is close to positive infinity. 
 The portion of the spectrum we care about is the "slightly correct" to "very mistaken" part of the spectrum because we want to penalize mistakes and "weakly correct" data points to better optimize the parameters. The SVM should ignore "very correct" data because we don't want those points to influence the weight, $\mathbf{w}$ too much since they are already very correct. In other words, we don't want the correct points resulting in very large negative values to wash out the positive values from the mistaken points.
 
-We use the Hinge loss to resolve this problem so that we only penalize for mistakes and weakly correct points (Figure ~\ref{fig:hinge})
+We use the Hinge loss to resolve this problem so that we only penalize for mistakes and weakly correct points.
 % $$min_{w} \frac{\lambda}{2}||w||^2 + \frac{1}{N}\sum_{n}^M max\{0,1-y_n w^T x_n\}$$
 \begin{equation}
 \begin{aligned}
@@ -484,6 +536,10 @@ For instance, if we apply non linear kernel as seen in figure ~\ref{fig:kernel},
 [2] Tendolkar, G. (n.d.). 2.1.6 kernels and non linear SVM - Machine Learning Notebook. Google Sites. Retrieved February 22, 2022, from https://sites.google.com/site/machinelearningnotebook2/classification/binary-classification/kernels-and-non-linear-svm 
 
 [3] R. Berwick, SVM Lecture Notes, MIT .http://web.mit.edu/6.034/wwwbob/svm-notes-long-08.pdf
+
+[4] Huh, Myung-Hoe. (2015). Kernel-Trick Regression and Classification. Communications for Statistical Applications and Methods. 22. 201-207. 10.5351/CSAM.2015.22.2.201. 
+
+[5] Hofmann, Martin. “Support Vector Machines — Kernels and the Kernel Trick An elaboration for the Hauptseminar “ Reading Club : Support Vector Machines ”.” (2006).
 
 %Include your references here. Please cite any resources you found useful.	
 %Populate the refs.bib file or list your references manually. Be consistent in formatting!
