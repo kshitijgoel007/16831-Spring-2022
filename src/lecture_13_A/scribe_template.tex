@@ -73,7 +73,7 @@
   (Wednesday, March 2)}{Lecturer: Kris Kitani}{Scribes: Seth Karten, Siva Kailas (Group 1)}{Thompson Sampling EXP3 EXP4}
 
 \section{Review}
-In the last lectures, we covered two specific approaches to multi-armed bandit problems. These were the explore-exploit algorithm and upper confidence bound algorithm. Both of these approaches pertain to context-free stochastic bandit environments. In this lecture, we will cover another approach for stochastic context-free bandits called Thompsons sampling. Then we cover an adversarial context-free bandit algorithm called EXP3. Finally, we cover an adversarial contextual bandit algorithm called EXP4.
+In the last lectures, we covered two specific approaches to multi-armed bandit problems. These were the explore-exploit algorithm and UCB algorithm. Both of these approaches pertain to context-free stochastic bandit environments. In this lecture, we will cover another approach for stochastic context-free bandits called Thompsons sampling. We cover an adversarial context-free bandit algorithm called EXP3 and an adversarial contextual bandit algorithm called EXP4.
 \subsection{Explore-Exploit Algorithm}
 The explore-exploit algorithm conducts exploration first by pulling each arm M times, and then conducts exploitation by pulling the arm with highest expected mean reward. The algorithm is shown below.
 \begin{algorithm}[H]
@@ -92,8 +92,17 @@ The explore-exploit algorithm conducts exploration first by pulling each arm M t
 \ENDFOR
 \end{algorithmic}
 \end{algorithm}
-The regret bound for the explore-exploit algorithm is shown below in terms of the number of arms (K) and the number of time steps (T).
-\[ R_{\text{explore-exploit}} = \mathcal{\Tilde{O}}(K^{\frac{1}{3}}T^{\frac{2}{3}}) \]
+The proof of the regret bound relies on Hoeffding's inequality, which is shown below.
+\[ p \left( \left| \sum_{t=1}^T \frac{r^{(t)}}{T} - \mu \right| \geq \epsilon \right) \leq 2e^{-2T\epsilon^2} \]
+From this, we derived a closed form expression for $\epsilon$ given a certain probability $\delta$ is desired. This expression is shown below.
+\[ \epsilon = \sqrt{\frac{\log{(\frac{2}{\delta})}}{2T}} \]
+This is used for characterizing the lower confidence bound $\mu - \epsilon < \hat{\mu}$ and the upper confidence bound $\mu + \epsilon > \hat{\mu}$.
+The regret bound for the explore phase of the algorithm is shown below.
+\[ R_{\text{explore}} \leq \mathcal{O}(KM) \]
+The regret bound for the exploit phase of the algorithm is shown below.
+\[ R_{\text{exploit}} \leq \mathcal{O}\left(2(T-KM)\sqrt{\frac{1}{M}}\right) \]
+The regret bound for the explore-exploit algorithm is shown below in terms of the number of arms (K) and the number of time steps (T) when M is optimal ($M = \left(\frac{T}{K}\right)^{\frac{2}{3}}$).
+\[ R_{\text{explore-exploit}} = R_{\text{explore}} + R_{\text{exploit}} \leq \mathcal{\Tilde{O}}(K^{\frac{1}{3}}T^{\frac{2}{3}}) \]
 
 \subsection{Upper Confidence Bound Algorithm}
 The upper confidence bound algorithm is shown below.
@@ -112,6 +121,9 @@ The upper confidence bound algorithm is shown below.
 \ENDFOR
 \end{algorithmic}
 \end{algorithm}
+The expression for the upper confidence $\epsilon' = \sqrt{\frac{\log{(\frac{2T}{\delta'})}}{2T_{k'}^{(t)}}}$ is derived from using the Hoeffding's inequality in conjunction with union bound (Boole's inequality). Boole's inequality states that $p(\bigcup_i x_i) \leq \sum_i p(x_i)$. Thus, we can construct the relevant upper confidence bound shown below.
+\[ p\left(\bigcup_{t=1}^T\left\{|\hat{\mu}_k^{(t)} - \mu_k| > \sqrt{\frac{\log{(\frac{2}{\delta})}}{2T_k^{(t)}}}\right\}\right) \leq \sum_{t=1}^T p\left( |\hat{\mu}_k^{(t)} - \mu_k| > \sqrt{\frac{\log{(\frac{2}{\delta})}}{2T_k^{(t)}}} \right) \leq T\delta = \delta' \]
+This yields the expression for $\epsilon'$ (similar to that derived for explore-exploit) $\epsilon' = \sqrt{\frac{\log{(\frac{2T}{\delta'})}}{2T_k^{(t)}}}$.
 The regret bound for the upper confidence bound algorithm is shown below in terms of the number of arms (K) and the number of time steps (T).
 \[ R_{\text{UCB}} = \mathcal{O}\left(2\sqrt{\log{\left(\frac{2T}{\delta}\right)}}\sqrt{KT}\right) =  \mathcal{\Tilde{O}}(\sqrt{KT}) \]
 
