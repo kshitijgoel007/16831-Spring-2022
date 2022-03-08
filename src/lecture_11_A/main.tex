@@ -16,7 +16,7 @@
 
 \usepackage{algorithm}
  %on linux you may need to run sudo apt-get install texlive-full to install algorithm.sys
-\usepackage{algorithmic}
+% \usepackage{algorithmic}
 
 \usepackage{verbatim}
 
@@ -107,18 +107,18 @@ Geometrically, the slack $x_i$ is the distance from the misclassified point $\te
 
 Now the problem becomes
 \begin{equation}
-    min_{w,\xi} ||\textbf{w}||^2 + C \sum_{i} \xi_i
+    min_{\textbf{w},\xi} ||\textbf{w}||^2 + C \sum_{i} \xi_i
 \end{equation}
 subject to $y_i (\textbf{w}\cdot \textbf{x}_i + b) \geq 1 - \xi_i$ for all $i$.
 
 And to merge the linear constraints into the objective function, this becomes
 \begin{equation}
-    min_{w} (\frac{\lambda}{2}||\textbf{w}||^2 + \frac{1}{M} \sum_{m=1}^{M} 1 - y_m \textbf{w}^T \textbf{x}_m)
+    min_{\textbf{w}} (\frac{\lambda}{2}||\textbf{w}||^2 + \frac{1}{M} \sum_{m=1}^{M} 1 - y_m \textbf{w}^T \textbf{x}_m)
 \end{equation}
 
 However, we only want to penalize for mistakes, weakly correct but ignore the very correct data, we replace the contraints term with a hinge loss and it turns to
 \begin{equation}
-     min_{w} (\frac{\lambda}{2}||\textbf{w}||^2 + \frac{1}{M} \sum_{m=1}^{M} max\{0, 1 - y_m \textbf{w}^T \textbf{x}_m\})
+     min_{\textbf{w}} (\frac{\lambda}{2}||\textbf{w}||^2 + \frac{1}{M} \sum_{m=1}^{M} max\{0, 1 - y_m \textbf{w}^T \textbf{x}_m\})
 \end{equation}
 
 Now this problem is convex with linear loss fuction $max\{0, 1 - y_m \textbf{w}^T \textbf{x}_m\}$ and quadratic regularization $\frac{\lambda}{2}||\textbf{w}||^2$, but it is non differentiable due to the hinge.
@@ -186,6 +186,9 @@ For example, we have a binary classification problem. We can get an strong class
     \label{fig:galaxy}
 \end{figure} 
 
+
+A toy Adaboost example(Fig. \ref{fig:galaxy}) can help you to understand the whole process. At the beginning, all data sample weights are equal, so we can get an naive classifier $h_1$, $\alpha_1$. Then we enlarge the wrong sample weights, and using these data, we can get another naive classifier $h_2$ and $\alpha_2$, and repeat these steps we get $h_3$, $\alpha_3$. So the final classifier is the weighted sum of $sign(\sum_{i=1}^3\alpha_ih_i)$, we get a zero error classifier.
+
 \begin{algorithm}
 \caption{Adaboost}
 \begin{algorithmic}[1]
@@ -198,7 +201,6 @@ For example, we have a binary classification problem. We can get an strong class
         \State $\beta^{(t)}=\epsilon^{(t)} / 1-\epsilon^{(t)}$
         \State $w_{n}^{(t)}=w_{n}^{(t-1)} \beta^{1-\left|h^{(t)}\left(\boldsymbol{x}_{n}^{(t)}\right)-y_{n}^{(t)}\right|} \forall n$ \Comment{Update}
     \EndFor
-
 \end{algorithmic}
 \end{algorithm}
 
