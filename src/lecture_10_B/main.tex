@@ -84,12 +84,80 @@
 \begin{document}
 
 \lecture{Statistical Techniques in Robotics (16-831, S22)}{Lecture \#10
-  (Monday, February 21)}{Lecturer: Kris Kitani}{Scribes: Rishabh Pahuja, Sarthak Shetty}{Support Vector Machines}
+  (Monday, February 21)}{Lecturer: Kris Kitani}{Scribes: Rishabh Pahuja, Sarthak Shetty}{Support Vector Maxines}
 
 \section{Review}
 In the previous lectures, we reviewed the mechanics of perceptrons and winnow algorithms. We then looked at online convex optimization with the application of follow the leader, follow the regularized leader and the relation with online mirror descent.
 
-Online learning techniques are especially useful for supervised learning, and online stochastic descent is a popular technique in this sub field.
+\subsection{Gradient Descent}
+We briefly discussed gradient descent in the previous lecture. Gradient descent is a technique for arriving at the minimum of some differentiable convex function. We essentially move in the direction opposite to the gradient at the given point in the function, to eventually arrive at the minimum of the function.
+
+Gradient descent is an algorithm that is used to find the minimum value of a differentiable function. Gradient descent follows Algorithm \ref{algo:GradientDescent}:
+
+\begin{algorithm}[H]
+\caption{Gradient Descent}
+\label{algo:GradientDescent}
+\begin{algorithmic}[1]
+\STATE $w^{(0)}=0$ \hfill
+\FOR{$t=1,\;\cdots,\;T$}
+\STATE $\textbf{Compute}(\nabla f(w^{t-1}))$ \hfill 
+\STATE $w^{t}=w^{t-1} - \eta \nabla f(w^{t-1})$ \hfill 
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+The '-' sign is important here. It indicates that we change the value of w in the direction opposite to the gradient of the function. Therefore, to find the minimum of a given function we keep moving in the direction decreasing gradient, until we converge to some function mimima.
+
+\subsection{Online Gradient Descent}
+
+Online Mirror Descent can be used to solve optimization problems that comprise of quadratic regularization and a linear loss function. In the case of Online Gradient Descent, we can write the regularization function as:
+
+\begin{equation}
+    \psi(\textbf{w}) =\dfrac{1}{2\eta}||w||_2^2
+\end{equation}{}
+
+And a linear loss function defined as:
+
+\begin{equation}
+    f(\textbf{w}) = \langle w, \theta \rangle
+\end{equation}
+
+Here, \textbf{$\theta$} is the parameter for the dual space. We then solved for the optimal, \textbf{$\theta$}, and find the following expression:
+
+\begin{equation}
+    w_n = \eta \theta
+    \label{eq:mirrorFunction}
+\end{equation}
+
+From Eq. \ref{eq:mirrorFunction}, we see that the mirror function for Online Gradient Descent, represented as $g(\theta) = \eta \theta$.
+
+% Online learning techniques are especially useful for supervised learning, and online stochastic descent is a popular technique in this sub-field.
+
+% Gradient descent can be done in batches of data, one data at a time \textbf{Stochatic Gradient Descent (SGD)} or in mini-batches. When size of mini-batch is one, it can be considered as an example of online gradient descent \textbf{(OGD)}. And when the function to be minimized is a convex function, it becomes online convex optimization. \textit{\textbf{SGD and OGD}} are a particular case of Online Mirror Descent \textbf{OMD}. Specifically, OGD is OMD with a linear loss and quadratic regularization.
+
+\subsection{Online Normalized Exponentiated Gradient Descent}
+
+We also briefly discussed Online Normalized Exponentiated Gradient Descent. The regularization function for ONEGD is represented as:
+
+\begin{equation}
+    \psi(\textbf{w}) = \sum_{k = 1}^{K} w_k \text{ } log \text{ } w_k \text{  } w \in \mathbb{S}^k
+\end{equation}
+
+And the loss function remains the same as:
+
+\begin{equation}
+    f(\textbf{w}) = \langle w, \theta \rangle
+    \label{eq:exponentiatedtLoss}
+\end{equation}
+
+We then find the mirror function for ONEGD as:
+
+\begin{equation}
+    g(\theta) = \dfrac{\eta \theta}{\sum_{n'} exp(\eta\theta_{n'})}
+    \label{eq:exponentialMirrorFunction}
+\end{equation}
+
+Therefore, we saw that for ONEGD we have a linear loss, as seen in Eq. \ref{eq:exponentiatedtLoss}, with entropy regularization as seen in Eq. \ref{eq:exponentialMirrorFunction}.
 
 \subsection{Online Learning vs. Supervised Learning}
 
@@ -101,7 +169,7 @@ Online learning techniques are especially useful for supervised learning, and on
 \label{fig:OLSL}
 \end{figure}
 
-In online learning, we have an update step followed by the prediction step. This pair of actions are repeated during the operation of the model. This relationship can be visualized in Fig. \ref{fig:OLSL}
+In online learning, we have an update step followed by the prediction step. This pair of actions are repeated during the operation of the model. This relationship can be visualized in Fig. \ref{fig:OLSL}.
 
 \begin{figure}[H]
 \begin{center}
@@ -116,14 +184,14 @@ Whereas, in supervised learning problems, we train the model with the available 
 Therefore, \textbf{most supervised learning algorithms can be solved used online learning models}.
 
 %Length requirement 1-2 pages.
-\section{Online Support Vector Machines}
+\section{Online Support Vector Maxines}
 
 \subsection{Geometric Intuition}
 \subsubsection{Hyperplanes in 2D}
 
 \begin{figure}[h]
     \centering
-    \includegraphics[scale = 0.50]{figures/2DLineParameterization.png}
+    \includegraphics[scale = 0.40]{figures/lineParameterization.jpg}
     \caption{Line parameterization in 2D}
     \label{fig:2DParameterization}
 \end{figure}
@@ -176,7 +244,7 @@ Consider the now we have another line, offset from the first line that we saw in
 
 \begin{figure}[h]
     \centering
-    \includegraphics[scale = 0.30]{figures/22DLines.png}
+    \includegraphics[scale = 0.30]{figures/lineDistance.jpg}
     \caption{A second line parallel to the first line, offset by some distance}
     \label{fig:22DLines}
 \end{figure}
@@ -205,7 +273,7 @@ Consider we have 2 planes in a 3-dimensioned space as shown in Fig. \ref{fig:3DP
 
 \begin{figure}[h]
     \centering
-    \includegraphics[scale = 0.285]{figures/3Dplanes.png}
+    \includegraphics[scale = 0.40]{figures/planeDistance.jpg}
     \caption{Planes in 3D, separated by some distance}
     \label{fig:3DPlanes}
 \end{figure}
@@ -216,17 +284,16 @@ Since we know the equation of the planes, and their distances to the origin thro
     \rho_{OD} = \dfrac{2}{||w||}
 \end{equation}
 
-\section{Summary}
 
-\subsection{Support Vector Machinery (SVM)}
+\section{Support Vector Machines (SVM)}
 \normalfont
 
-\subsubsection{Introduction}
+\subsection{Introduction}
 Consider the binary classification problem, where we have two clusters of data as shown here:
 
 \begin{figure}[h]
     \centering
-    \includegraphics[scale = 0.25]{figures/cluster.png}
+    \includegraphics[scale = 0.25]{figures/OGData.jpg}
     \caption{Two clusters of data that have to be separated with a suitable hyperplane $w$}
     \label{fig:DataClusters}
 \end{figure}
@@ -237,20 +304,20 @@ Graphically this hypothetical $w$ can be represented as:
 
 \begin{figure}[h]
     \centering
-    \includegraphics[scale = 0.25]{figures/maxMargin.png}
+    \includegraphics[scale = 0.25]{figures/HowToData.PNG}
     \caption{Hyperplane, $w$, that has the maximum distance from the innermost points of both clusters}
     \label{fig:maxMargin}
 \end{figure}
 
-This hyperplane, that has the "maximum margin" to the innermost points, is also the plane, $w$, most likely to be the most stable to perturbations in the data. \textbf{The innermost points of each cluster that form the definition of the margin to the given hyperplane $w$ are also called "support vectors", and therefore, these planes are also called "Support Vector Machines" or SVMs}.
+This hyperplane, that has the "maximum margin" to the innermost points, is also the plane, $w$, most likely to be the most stable to perturbations in the data. The innermost points of each cluster that form the definition of the margin to the given hyperplane $w$ are also called "support vectors", and therefore, these planes are also called "Support Vector Machines" or SVMs.
 
-\subsubsection{Objective of Hyperplanes}
+\subsection{Objective of Hyperplanes}
 
 The objective of the SVM is to find a hyperplane, $w$, such that the hyperplanes that define the margin of two clusters is maximised. This objective can be visualized in Fig. \ref{fig:hyperPlaneMargin}:
 
 \begin{figure}[h]
     \centering
-    \includegraphics[scale=0.28]{figures/marginHyperplane.png}
+    \includegraphics[scale=0.28]{figures/SVMIntro.PNG}
     \caption{The objective of SVM is to find the hyperplane, $w$, such that the margin between the clusters is maximised}
     \label{fig:hyperPlaneMargin}
 \end{figure}
@@ -265,7 +332,7 @@ Referencing Fig. \ref{fig:hyperPlaneMargin}, the objective of this SVM is to cor
 Let's look at what that would mean mathematically:
 
 \begin{equation}\label{eq:conditionalSVM}
-    w \cdot x  = 
+    w \cdot x + b  = 
     \begin{cases}
     +1, & \text{if}\ y_{i} = +1 \\
     -1, & \text{if}\ y_{i} = -1 \forall\ i \in [1, 2, 3 \dots N]
@@ -277,7 +344,13 @@ Eq. \ref{eq:conditionalSVM} would imply that the SVM would always correctly labe
 In order to maximize Eq. \ref{eq:conditionalSVM}, we can minimize the following equation instead:
 
 \begin{equation}\label{eq:modifiedConditionalSVM}
-    \min_{w} ||w||^{2} \text{ given, } \ y_{i}(w \cdot x_{i} + b) \forall i \in [1, 2, \dots N]
+    \min_{w} ||w||^{2}
+\end{equation}
+
+Given the constraint,
+
+\begin{equation}\label{eq:modifiedConditionalSVMConstrain}
+    y_{i}(w \cdot x_{i} + b) \geq 1 \text{, } \forall i \in [1, 2, \dots N]
 \end{equation}
 
 In Eq. \ref{eq:modifiedConditionalSVM}, we square $w$ in order to introduce a greater penalty on $w$. The minimum value of $||w||$ will be the same as the minimum value of $||w||^2$, which justifies this substitution. In Eq. \ref{eq:modifiedConditionalSVM}, since we're performing binary classification (i.e, predicting one of two labels $\hat{y}$ in $[-1, 1]$), we can multiply the output of the classification of the SVM with the label, to arrive at the condition within the equation.
@@ -337,37 +410,37 @@ The above discussion holds true when the data is linearly separable. However, wh
 \label{fig:HardSVMPerf}
 \end{figure}
 
-Considering figure 3, we can see that the data is not linearly separable.  This is because, some of the dogs look slightly like cats and vice versa. As we can see from the data,there is a very small margin between the labels of cats and dogs and in attempts to rightly classify each image, the whole line will be shifted for very rare cases. Therefore, we should allow for some miss-classification if we can get more robust classification by coming up with a hyperplane that has a higher margin, at the cost of some miss-classification. This can be classified as classifying the data 'softly'.
+Considering Fig. \ref{fig:HardSVMPerf}, we can see that the data is not linearly separable.  This is because, some of the dogs look slightly like cats and vice versa. As we can see from the data,there is a very small margin between the labels of cats and dogs and in attempts to rightly classify each image, the whole line will be shifted for very rare cases. Therefore, we should allow for some miss-classification if we can get more robust classification by coming up with a hyperplane that has a higher margin, at the cost of some miss-classification. This can be classified as classifying the data 'softly'.
 
 \begin{figure}[H]
 \begin{center}
-\includegraphics[scale=0.25]{figures/SoftSVM.png}
+\includegraphics[scale=0.25]{figures/MissClassify.PNG}
 \end{center}
 \caption{Performance of Soft SVM of linearly in-separable data}
 \label{fig:LinearlySeperable}
 \end{figure}
 
-Figure 4 shows, implementation of some soft SVM at the cost of some miss-classifications. It can be seen that the hyperplane has higher margin and thus, is a better classifier.
+Fig. \ref{fig:LinearlySeperable} shows, implementation of some soft SVM at the cost of some miss-classifications. It can be seen that the hyperplane has higher margin and thus, is a better classifier.
 
 \subsubsection{Mathematical interpretation of soft margin}
 
 The 'slack' in classification can be increased by adding a slack variable to the expression we saw earlier for hard SVM classification. Thus, the expression now becomes:
 
 \begin{equation}
-y_i(w^T \cdot x_i+b) \geq 1- \chi_i
+y_i(w^T \cdot x_i+b) \geq 1- \xi_i
 \end{equation}
 
-Here $\chi$ introduced will decrease the threshold value and some of the values might be miss classified. The value of $\chi$ needs to tuned as a very large value might miss-classify all the variables. Therefore, we want the slack value to be as close to zero as possible. The variable $\chi$ is called as the slack variable and geometrically represents the distance of the miss-classified element from the margin. 
+Here $\xi$ introduced will decrease the threshold value and some of the values might be miss classified. The value of $\xi$ should ideally be as small as possible because smaller value indicates that the points are on the right side of the hyperplane. The variable $\xi$ is called as the slack variable and geometrically represents the distance of the miss-classified element from the margin. 
 
 \textbf{The object function now becomes}:
 
 \begin{equation}
-\min_{w,\chi}||w||^{2} + C \sum{\chi_i}
+\min_{w,\xi}||w||^{2} + C \sum{\xi_i}
 \end{equation}
 
 \begin{figure}[H]
 \begin{center}
-\includegraphics[scale=0.30]{figures/SlackInterpretation.png}
+\includegraphics[scale=0.28]{figures/SlackSVM.PNG}
 \end{center}
 \caption{Geometric interpretation of slack variables in soft SVM}
 \label{fig:Slackvariables}
@@ -389,7 +462,7 @@ C here is a regularization parameter. When the value of C is very small, that me
 
 \subsubsection{\textbf{Solution for Soft SVM}}
 
-The new objective function $\mathbf{\min_{w, \chi}{||w||^2}+C\sum{\chi_i}}$ when subjected to $\mathbf{y_i(w^{T}x_{i}+b \geq 1-\chi_i)}$ can be solved using Lagrange's method:
+The new objective function $\mathbf{\min_{w, \xi}{||w||^2}+C\sum{\xi_i}}$ when subjected to $\mathbf{y_i(w^{T}x_{i}+b \geq 1-\xi_i)}$ can be solved using Lagrange's method:
 
 Thus, the equation becomes:
 
@@ -398,29 +471,29 @@ Thus, the equation becomes:
 \end{equation}
 
 
-Where, $\lambda$ is Lagrange's multiplier and $\chi$ becomes:
+Where, $\lambda$ is Lagrange's multiplier and $\xi$ becomes:
 
 \begin{equation}
-    \chi \geq 1-y_i(w \cdot x_i)
+    \xi \geq 1-y_i(w \cdot x_i)
 \end{equation}
 
-We can see that when the predictions are correct, the value of $\chi$ can vary from $\infty$ to 1 and when the predictions are wrong, the values can range from 1 to $\infty$. However, we should not be concerned for all the values of $\chi$ but only for those values such that the margins become less or the mistakes are too high. So to bound the value of $\chi$, we use hinge loss such that the new equation becomes:
+We can see that when the predictions are correct, the value of $\xi$ can vary from $\infty$ to 1 and when the predictions are wrong, the values can range from 1 to $\infty$. However, we should not be concerned for all the values of $\xi$ but only for those values such that the margins become less or the mistakes are too high. So to bound the value of $\xi$, we use hinge loss such that the new equation becomes:
 
 \begin{equation}
 \min_{w}\dfrac{\lambda}{2}||w||^2+\dfrac{1}{N}\Sigma^N_{i=1}\max{(0, 1-y_i w^T \cdot x_i)}
 \end{equation}
 
-One thing to note here is that the function is convex here but is not differentiable throughout because of the hinge. Therefore, to solve this function, we need to introduce something called as sub-gradient which is like online gradient descent but is more flexible.
+One thing to note here is that the function is convex here but is not differentiable throughout because of the hinge. Therefore, to solve this function, we introduce sub-gradients. The necessity to introduce sub-gradient arises when a function is not differentiable throughout its input values. In the second sub-figure of \ref{fig:GradientVsSubGradient}, the various lines lower bounding the convex function at the hinge are called the sub-gradients. 
 
 \begin{figure}[H]
 \begin{center}
-\includegraphics[scale=0.35]{figures/GradientvsSubgradient.png}
+\includegraphics[scale=0.25]{figures/diffNonDiff.PNG}
 \end{center}
 \caption{Gradient vs Sub-Gradient}
 \label{fig:GradientVsSubGradient}
 \end{figure}
 
-With the introduction of sub-gradients, we can define two gradients for the function such that it can be differentiated:
+From all the possible sub-gradients, we can define two gradients for the function such that it can be differentiated:
 
 \begin{equation}
     z_{[m]} = 
@@ -455,11 +528,11 @@ So the algorithm becomes:
 
 In line 5, $y_{d}x_{d}$ is the sub-gradient and the indicator function is the hinge condition, such that the $\theta^{t}$ will only be updated if there is a wrong prediction or if the label is on the wrong side of the hyperplane.
 
-This algorithm is very close to online perceptron algorithm. However something to note here is that in online perceptron algorithm, indicator function is $1\cdot[y_d(w^(t).x_d)<0]$ implying that the perceptron algorithm cares only if the prediction is right or wrong and does not care about how close a point to the hyperplane, SVM on the other side cares for both.
+This algorithm is very close to online perceptron algorithm. However something to note here is that in online perceptron algorithm, indicator function is $1\cdot[y_d(w^(t).x_d)<0]$ implying that the perceptron algorithm considers if the prediction is right or wrong and does not consider correctness or in-correctness of the prediction. SVM on the other hand, considers both correctness and the in-correctness of predictions.
 
 \section{Conclusion}
 
-In this lecture, we looked at the underlying mechanics of how Support Vector Machines work (SVMs). We also learnt the differences between Hard and Soft SVMs, and their performance when presented with linearly separable and in-separable data. We also looked at the need for sub-gradients when dealing with convex, but non-differentiable functions.
+In this lecture, we looked at the underlying mechanics of how Support Vector Maxines work (SVMs). We also learnt the differences between Hard and Soft SVMs, and their performance when presented with linearly separable and in-separable data. We also looked at the need for sub-gradients when dealing with convex, but non-differentiable functions.
 
 \textbf{Note}: We referred to the previous years' scribe notes while preparing this document \cite{Paritosh2021}.
 
