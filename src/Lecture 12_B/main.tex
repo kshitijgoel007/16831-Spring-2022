@@ -328,10 +328,10 @@ We need to find a balance between exploiting arms that did well in the past vs e
 \section{Summary}
 
 In this lecture, we deal with stochastic (not adversarial) bandits. This essentially means that each bandit arm has a static reward distribution that does not change. Each arm pull essentially gives us a sample from the distribution. We saw in the previous lecture that given an estimated mean and the number of times an arm is pulled, it is not easy to say whether that arm is the most optimal arm for reward maximisation. 
-
+% CHANGE THE FIGURE
 \begin{figure}[h!]
     \centering
-    \includegraphics[width=0.8\textwidth]{figs/Screen Shot 2022-03-03 at 11.25.24 PM.png}
+    \includegraphics[width=0.8\textwidth]{IMG_0A1362EF257A-1.jpeg}
     \caption{Exploration vs Exploitation}
     \label{plot}
 \end{figure}
@@ -419,7 +419,7 @@ Say, we want the probability to be less than a given specified value $\delta$. I
 This threshold, $\epsilon$, is called ``confidence interval" or ``confidence bound", as illustrated in Fig.~\ref{fig:confid}.
 \begin{figure}[h!]
     \centering
-    \includegraphics[width=0.5\textwidth]{figs/confidence_region.png}
+    \includegraphics[width=0.5\textwidth]{IMG_3F1CB3131325-1.jpeg}
     \caption{An illustration of confidence interval.}
     \label{fig:confid}
 \end{figure}
@@ -443,7 +443,7 @@ For the exploitation phase, we follow the five step procedure for finding bounds
     \item Combine the bounds.
     \item Use algebra to compute the regret bound.
 \end{enumerate}
-
+% EXPLAIN WHY THE INEQUALITY IS USED DIFFERENTLY
 We first define the potential function using the fact
 that if we pulled the wrong arm (i.e. not the true best arm), that means
 our estimate of the best arm was wrong. Formally, our potential is defined
@@ -453,7 +453,9 @@ as
 \] 
 where $\widehat{k} = \arg\max_{k} \widehat{\mu}_k $ and $k^{\ast} = \arg\max_{k} \mu_k$. 
 
-Now, we derive the upper and lower bounds of this potential.
+Notice that unlike prior algorithms, here we use an inequality as our potential function. Moreover, for computing the bounds of this potential function, we will essentially find the upper bound of $\hat{\mu}_{\hat{k}}$ and lower bound of $\hat{\mu}_{k^*}$. In other words, the least possible value of $\hat{\mu}_{\hat{k}}$ should still be higher than the greatest possible value of $\hat{\mu}_{k^*}$.
+
+Now, we derive the upper and lower bounds as discussed above.
 
 \textbf{Upper Bound} For the upper bound, we can use the Upper Confidence Bound (UCB) (derived using Hoeffding's Inequality) (illustrated
 in Fig. \ref{fig:confid}):
@@ -465,10 +467,11 @@ in Fig. \ref{fig:confid}):
 \textbf{Lower Bound} For the lower bound, we can use the Lower Confidence Bound (LCB) (derived using Hoeffding's Inequality) (illustrated
 in Fig. \ref{fig:confid}):
 \begin{align*}
-\hat{\mu}_{\hat{k}} &\geq \mu_{k^*} - \epsilon\\
+\hat{\mu}_{{k^*}} &\geq \mu_{k^*} - \epsilon\\
 &\geq \mu_{k^*} - \sqrt{\frac{\log{2/\delta}}{2M}}
 \end{align*}
 
+% INEQUALITY USED HOW
 \textbf{Combining Lower and Upper Bounds} We can combine these bounds 
 \begin{align*}
 \mu_{\hat{k}} + \sqrt{\frac{\log (2/\delta)}{2M}} &\geq \mu_{k^*} - \sqrt{\frac{\log (2/\delta)}{2M}}\\
@@ -537,15 +540,15 @@ Even though the explore-exploit algorithm is sublinear in time, it is not the be
 \STATE $k = \argmax_{k'} \left(\hat{\mu}_{k'
 } + \sqrt{\frac{\log(2T/\delta')}{2T_{k'}^{(t)}}} \right)$ \hfill $\triangleright$ mean reward + upper confidence
 \ENDIF
-\STATE $\mathtt{RECEIVE}(r^{(t)})$
-\STATE $T_k^{(t)} = T_k^{(t')} + 1$  \hfill $\triangleright$ update pull counter for kth arm
+\STATE $\mathtt{RECEIVE}(r^)$
+\STATE $T_k^{(t)} = T_k^{(t)} + 1$  \hfill $\triangleright$ update pull counter for kth arm
 \STATE $\hat{\mu}_{k} = \frac{1}{T_k^{(t)}}\left(\hat{\mu}_{k}(T_k^{(t)} - 1) + r^{(t)}\right)$ \hfill $\triangleright$ update mean reward for k
 \ENDFOR
 \end{algorithmic}
 \end{algorithm}
 
 \subsubsection{Understanding confidence term}
-The confidence term is obtained using Hoeffding's inequality and depends on the number of pulls of a particular arm $T_{k'}^{(t)}$, total pulls $T$ and $\delta$. So, as the game progresses and the number of pulls increase, the learner becomes more confident and the confidence term reduces.
+The confidence term is obtained using Hoeffding's inequality and depends on the number of pulls of a particular arm till time $t$ ($T_{k}^{(t)}$), total pulls ($T$) and threshold ($\delta$). So, as the game progresses and the number of pulls increase, the learner becomes more confident and the confidence term reduces.
 
 \theorem{\normalfont\textbf{Boole's inequality (Union Bound)} The probability that at least one of the events happens is no
 greater than the sum of the probabilities of the individual events. Mathematically, $p(\bigcup_i x_i) \le \sum_i p(x_i)$, where $x_i$'s are events.}\\
@@ -650,7 +653,14 @@ $$\le \sqrt{\log(2T/\delta')} K \left( \sqrt{\frac{1}{K}\sum_{j=1}^K T_j^{(T)}} 
 $$= \sqrt{\log(2T/\delta')} K \left( \sqrt{\frac{T}{K}} \right)$$
 $$= \sqrt{\log(2T/\delta')} \sqrt{TK} \approx \mathcal{O}(\sqrt{TK})$$
 
-If we compare, the regret bound for UCB ($\mathcal{O}(\sqrt{T}$) is "more" sub-linear with respect to $T$ than Explore-Exploit algorithm ($\mathcal{O}(T^{\frac{2}{3}})$) and hence, is better. This is perhaps because UCB starts the exploitation at an earlier stage and then continues exploring.
+If we compare, the regret bound for UCB ($\mathcal{O}(\sqrt{T}$) is "more" sub-linear with respect to $T$ than Explore-Exploit algorithm ($\mathcal{O}(T^{\frac{2}{3}})$) and hence, is better. If we dive further to understand this behaviour, we'll see that in UCB, the confidence bound of a "good" arm gets tighter with time.  This statement can be supported by looking at the equation computing confidence of an arm. We see that $T_{k'}^{(t)}$ is in the denominator, which denotes that as the number of times the arm is pulled increases, its confidence bounds gets tighter and the algorithm gets a better estimate of "good" arms. Next, the algorithm prefers "good" arms and furthermore results in tighter confidence bounds.
+This behaviour correlates with exploiting rather than exploring.
+\begin{equation*}
+    \epsilon = \sqrt{\frac{\log(2T/\delta')}{2T_{k'}^{(t)}}}
+\end{equation*}
+
+Therefore, unlike explore-exploit which has fixed timesteps for exploring, UCB starts exploiting as the confidence bounds get tighter.
+
 
 %\section*{References}
 %Include your references here. Please cite any resources you found useful.	
