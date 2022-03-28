@@ -1,0 +1,321 @@
+\documentclass[11pt]{article}
+\usepackage{latexsym}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{epsfig}
+\usepackage[tight]{subfigure}
+\usepackage{ dsfont }
+\usepackage{amsmath}
+\usepackage{xcolor}
+\DeclareMathOperator*{\minimize}{min}
+\DeclareMathOperator*{\maximize}{max}
+\usepackage{textcomp}
+\usepackage{algorithm}
+ %on linux you may need to run sudo apt-get install texlive-full to install algorithm.sys
+\usepackage{algorithmic}
+
+\usepackage{verbatim}
+%added by Siva
+\usepackage{float}
+
+\newcommand{\handout}[5]{
+  \noindent
+  \begin{center}
+  \framebox{
+    \vbox{
+      \hbox to 5.78in { {#1} \hfill #2 }
+      \vspace{4mm}
+      \hbox to 5.78in { {\Large \hfill #5  \hfill} }
+      \vspace{2mm}
+      \hbox to 5.78in { {\em #3 \hfill #4} }
+    }
+  }
+  \end{center}
+  \vspace*{4mm}
+}
+
+\newcommand{\lecture}[5]{\handout{#1}{#2}{#3}{#4}{#5}}
+\newcommand{\collision}[0]{\mathrm{collision}}
+\newcommand{\nocollision}[0]{\overline{\collision}}
+
+\newcommand*{\QED}{\hfill\ensuremath{\square}}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{observation}[theorem]{Observation}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{claim}[theorem]{Claim}
+\newtheorem{fact}[theorem]{Fact}
+\newtheorem{assumption}[theorem]{Assumption}
+\newtheorem{note}[theorem]{Note}
+
+% 1-inch margins, from fullpage.sty by H.Partl, Version 2, Dec. 15, 1988.
+\topmargin 0pt
+\advance \topmargin by -\headheight
+\advance \topmargin by -\headsep
+\textheight 8.9in
+\oddsidemargin 0pt
+\evensidemargin \oddsidemargin
+\marginparwidth 0.5in
+\textwidth 6.5in
+
+\parindent 0in
+\parskip 1.5ex
+%\renewcommand{\baselinestretch}{1.25}
+\newcommand{\seth}[1]{ {\color{blue}#1} }
+\newcommand{\siva}[1]{ {\color{red}#1} }
+\begin{document}
+
+\lecture{Statistical Techniques in Robotics (16-831, S22)}{Lecture \#14
+  (Monday, March 14)}{Lecturer: Kris Kitani}{Scribes: Seth Karten, Siva Kailas (Group 4)}{Sequence Feedback Learning Problems}
+
+\section{Review}
+In the last lectures, we covered Thompson Sampling and EXP3/EXP4. The Thompson Sampling method maintains a running estimate of the prior distribution hyperparameter by observing the rewards, and selects the best arm by sampling from the estimated posterior distribution. EXP3 addresses context-free bandits in an adversarial environment, and EXP4 addresses contextual bandits in an adversarial environment. In this lecture, we will cover a review of the learning problems we have covered so far in class. We will compare and contrast the previous methods, as well as understanding the key differences between supervised and reinforcement learning. We will introduce sequential decision-making, including Markov Decision Processes and the mathematics behind it.
+
+\subsection{Thompson Sampling}
+Thompson sampling can be broken down into a 2-step high-level strategy as shown below.
+\begin{enumerate}
+    \item Maintain a running estimate of the prior distribution hyperparameter by observing the rewards
+    \item Select the best arm by sampling from the estimated posterior distribution
+\end{enumerate}
+
+We use the version of Thompson sampling that provides simple update rules. The algorithm for the specific variant of Thompson sampling which uses a Bernoulli likelihood function, Beta prior distribution (and posterior distribution), and the derived posterior update is shown below.
+\begin{algorithm}[H]
+\caption{Bern-Beta Thompsons Sampling}
+\begin{algorithmic}[1]
+\FOR{$t=1, \ldots, T$}
+    \STATE $\theta_k \sim p(\theta; \alpha_k, \beta_k)\, \forall k$
+    \STATE $a_{\hat{k}}^{(t)} = \arg\max_k \mathbb{E}_{p(r|a_k,\theta_k)}[r|a_k,\theta_k]$
+    \STATE $\texttt{RECEIVE}(r^{(t)})$
+    \STATE $\alpha_{\hat{k}} = \alpha_{\hat{k}} + r^{(t)}$
+    \STATE $\beta_{\hat{k}} = \beta_{\hat{k}} + 1 - r^{(t)}$
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{EXP3 and EXP4}
+
+The main idea of Exponential-Weight Update algorithm for Exploration and Exploitation (EXP3) is addressing context-free bandits in an adversarial environment.
+
+\begin{algorithm}[H]
+\caption{EXP3($\gamma \in [0,1])$}
+\begin{algorithmic}
+\FOR{$t=1, \ldots, T$}
+    \STATE $p^t = \frac{w^t}{\sum_k w_k^t}$
+    \STATE $k \sim \texttt{Multinomial}(p^t)$
+    \STATE $a^t = a_k$
+    \STATE $\texttt{RECEIVE}(r^t \in [0,1])$
+    \STATE $w_k^{t+1} = w_k^t \exp\{\gamma \frac{r^t}{p_k^t}\}$
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+The main idea of Exponential-Weight Update algorithm for Exploration and Exploitation with Experts (EXP4) is addressing contextual bandits in an adversarial environment.
+
+\begin{algorithm}[H]
+\caption{EXP4($\gamma \in (0,1], T$)}
+\begin{algorithmic}
+\STATE $w^1 \gets 1 \in \mathbb{R}^N$
+\FOR{$t=1, \ldots, T$}
+    \STATE \texttt{RECEIVE($X^t \in \mathbb{R}^{N \times K}$)}
+    \STATE $q^t = \frac{w^t}{\|w^t\|}X^t \in \Delta^K$
+    \STATE $k^t \sim \texttt{Multinomial}(q^t)$
+    \STATE $\texttt{Receive}(r^t)$
+    \STATE $\hat{r}^t = \frac{r^t}{q_k^t}\mathbb{I}[k=k^t]\in \mathbb{I}^K$
+    \STATE $g^t = X^t * \hat{r}^t \in \mathbb{R}^N$
+    \STATE $w_n^{t+1} = w_n^t \exp\{\gamma *g_n^t\} \ \forall n$
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+The regret of EXP4 is,
+$$R_{\texttt{EXP4}} \leq \sqrt{KT\log N},$$
+where $K$ is the number of arms, $T$ is the time, and $N$ is the number of experts.
+
+In \texttt{EXP4}, we parameterize the distribution by 
+$$ q^t = \frac{w^t}{\|w^t\|} * X^t, $$
+while in \texttt{EXP3}, we parameterize the distribution by 
+$$p^t = \frac{w^t}{\|w^t\|}.$$
+\texttt{EXP4} uses the matrix of expert advice from $N$ experts to determine the probability over actions and then draw the action from the distribution as the key difference.
+
+This is reflected in the $g_n^t$ terms in \texttt{EXP4} versus the reward over inverse probability ratio, $\frac{r^t}{p_k^t}$, in \texttt{EXP3}.
+
+\section{Review of Learning Problems}
+% Supervised learning vs. Reinforcement learning
+Supervised learning is a 'one-shot' feedback method. The key idea is that in this method, one does not have to worry about issues like co-variate shift or temporal credit assignment. Each data-point is independent of all other data-points, i.e., each the state and action does not affect any state and action. Samples are identically and independently distributed. Overall, supervised learning creates a mapping $f:x\to a$.
+
+On the other hand, in reinforcement learning, samples are drawn through interaction. There is a strong correlation between sequential data-points. That is, all samples in a trajectory are correlated where the action affects the next state. The sequence of states and actions creates a single data-point, which is mapped to a reward as a type of 'sequence' feedback. Here, it is important to address covariate shift, temporal credit assignment, and very large “trajectory” spaces.
+
+\subsection{Decision-making Problems}
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{|c|c|c|c|}
+    \hline 
+    Problem & Sampled & Evaluative & Sequential\\ \hline 
+      PWEA   & $\times$ & $\times$ & $\times$\\ \hline 
+        OLC/OMD     & $\checkmark$ & $\Delta$ & $\times$ \\ \hline 
+            MAB    & $\times$ & $\checkmark$ & $\times$ \\ \hline 
+               C-MAB    &$\checkmark$ & $\checkmark$& $\times$ \\ \hline 
+   RL & $\checkmark$& $\checkmark$&$\checkmark$\\ \hline 
+   IL   & $\checkmark$& $\checkmark$& $\Delta$\\ \hline
+    \end{tabular}
+    \label{tab:t1}
+\end{table}
+% PWEA
+PWEA (e.g., weight majority algorithm) is neither sampled, evaluative, nor sequential. The expert advice was from expert advice (0 or 1), not sampled. The actions were discrete and finite. It was not evaluative, since we either won or lost the race (for example). It was also not sequential, since we did not get a payout across multiple races. 
+
+% OLC / OMD
+OLC / OMD is sampled, sometimes instructive and sometimes evaluative, and not sequential. The sampled feedback is, for example, a vector of observations. There is also a vector of paramters in continuous space. Our online linear classification was set up as instructive (observation vector is either class 0 or 1). Using the Hinge loss, this became evaluative. Again, with restarting after each state, it is not sequential.
+
+In both PWEA and OLC/OMD, the loss function was fully observed.
+In the following multi-arm bandit problems, the loss is no longer fully observed.
+% MAB
+The MAB problem was not sampled (exhaustive), was evaluative, and was not sequential. The feedback was the reward from a stochastic arm function, so the feedback was completely evaluative. 
+
+% C-MAB
+The (Contextual) C-MAB problem was sampled, was evaluative, and was not sequential. The information was not exhaustive, it was sampled from continuous space. The feedback was evaluative. However, the (noisy) reward function was only partially observed, so we could only update one parameter or arm at a time.
+
+% RL
+Reinforcement learning is sampled, evaluative, and sequential. This implies that one must reason about the impact of decisions on the entire sequence, including future states within a sequence.
+
+% IL
+Imitation learning is sampled, evaluative, and sequential. However, we can convert the sequence into a one-shot problem. 
+
+\section{Sequential Decision-Making}
+In sequential problems, one obtains a sequence of rewards and updates the future predictor, which we will call a value function, and then update an action predictor, which we will call a policy.
+
+\subsection{Markov Decision Processes}
+A Markov Decision Process (MDP) is defined by the 7-tuple $(\mathcal{S}, \mathcal{A}_\mathcal{S}, p(s^\prime|s,a), r(s^\prime,s,a), p_0(s), \pi(a|s), \gamma)$ where $\mathcal{S}$ is the set of states, $\mathcal{A}$ is the set of actions, $p(s^\prime|s,a)$ is the state transition dynamic, $r(s^\prime,s,a)$ is the reward function, $p_0(s)$ is the state prior, $\pi(a|s)$ is the policy, and $\gamma$ is the discount factor.
+
+In a traditional MDP factorization, we have,
+\begin{equation*}
+p(s_0, s_1, a_1, \dots, s_T, a_T) = p_0(s_0) \prod_{t} p(s_{t+1} | s_t, a_t) p(a_t|s_t).    
+\end{equation*}
+
+The reward may be factorized in the following ways (from most complex relation to simplest),
+$$
+r(s_0,a_0,s_1,a_1,\dots,s_T,a_T) = r(s_0,a_0,s_1) + r(s_1,a_1,s_2) + \dots
+$$
+$$
+r(s_0,a_0,s_1,a_1,\dots,s_T,a_T) = r(s_0,a_0) + r(s_1,a_1) + \dots
+$$
+$$
+r(s_0,a_0,s_1,a_1,\dots,s_T,a_T) = r(s_0) + r(s_1) + \dots
+$$
+
+\subsection{Grid World Example}
+
+\subsection{Mathematics of the MDP}
+The state value function is the total expected return of a trajectory starting in state $s$ under policy $\pi$,
+$$
+V^\pi (s) = \mathds{E}_p [r_0 + r_1 + r_2 + \dots | s_0 = s],
+$$
+which yields the summation of all future rewards or the expected return. The probability distribution from the expectation comes from the MDP given the first-order Markov assumption,
+$$
+p(s_0,a_0,s_1,a_1,\dots) = p_0 (s_0) p(s_1 | s_0, a_0) p(a_0 | s_0) p(s_2| s_1, a_1) p(a_1 | s_1) \dots
+$$
+
+The return from the value function depends on the horizon. With an infinite horizon, there is an infinite return, which is hard to deal with,
+$$
+V^\pi = \mathds{E}_p [r_0 + r_1 + r_2 + \dots | s_0 = s].
+$$
+For a finite horizon, the return is,
+$$
+V^\pi = \mathds{E}_p [r_0 + r_1 + r_2 + \dots + r_T | s_0 = s].
+$$
+An infinite horizon discounted return is,
+$$
+V^\pi = \mathds{E}_p [\gamma^0 r_0 + \gamma^1 r_1 + \gamma^2 r_2 + \dots | s_0 = s].
+$$
+
+% Q learning and bellman equation left todo
+The state-action value function, on the other hand, is the total expected return of a trajectory starting in state $s$ and taking action $a$ under policy $\pi$.
+\[ Q^\pi(s,a) = \mathds{E}_p [\gamma^0 r_0 + \gamma^1 r_1 + \gamma^2 r_2 + \dots | s_0 = s, a_0 = a] \]
+There is a relationship between the state value function $
+V^\pi = \mathds{E}_p [\gamma^0 r_0 + \gamma^1 r_1 + \gamma^2 r_2 + \dots | s_0 = s]$ and state-action function $Q^\pi(s,a) = \mathds{E}_p [\gamma^0 r_0 + \gamma^1 r_1 + \gamma^2 r_2 + \dots | s_0 = s, a_0 = a]$. We can derive it by starting with the definition of $V^\pi$ as shown below.
+\[ V^\pi(s) = \mathds{E}_p [\gamma^0 r_0 + \gamma^1 r_1 + \gamma^2 r_2 + \dots | s_0 = s] = \mathds{E}_p \left[\sum_{t=0}^\infty \gamma^tr_t|s_0 = s \right] \]
+From this, we apply the definition of expectation $E[X] = \sum_i x_ip(x_i)$ as shown below.
+\[ V^\pi(s) = \mathds{E}_p \left[\sum_{t=0}^\infty \gamma^tr_t|s_0 = s \right] = \sum_{s_{1:\infty},a_{0:\infty}} p(s_{1:\infty},a_{0:\infty}) \left[\sum_{t=0}^\infty \gamma^tr_t|s_0 = s \right] \]
+Note that $p(s_{1:\infty},a_{0:\infty}) = p(s_{1:\infty},a_{1:\infty})p(a_0) = p(s_{1:\infty},a_{1:\infty})\pi(a_0|s_0=s)$. Thus, we obtain the next equality shown below.
+\[ V^\pi(s) = \sum_{s_{1:\infty},a_{0:\infty}} p(s_{1:\infty},a_{1:\infty})\pi(a_0|s_0=s) \left[\sum_{t=0}^\infty \gamma^tr_t|s_0 = s \right] \]
+We can then split the summation into two nested summations since $\pi(a_0|s_0=s)$ only needs to be summed over all possible $a_0$, as shown below. Note that by having a separate summation for $a_0$, we must include the term in the innermost summation as well to obtain marginalization.
+\[ V^\pi(s) = \sum_a\pi(a_0=a|s_0=s)\sum_{s_{1:\infty},a_{1:\infty}} p(s_{1:\infty},a_{1:\infty}) \left[\sum_{t=0}^\infty \gamma^tr_t|s_0 = s, a_0 = a \right] \]
+By applying the definition of expectation $E[X] = \sum_i x_ip(x_i)$, we can collapse the inner summation as shown below.
+\[ V^\pi(s) = \sum_a\pi(a_0=a|s_0=s) \mathds{E}_p \left[\sum_{t=0}^\infty \gamma^tr_t|s_0 = s, a_0 = a \right] \]
+Note that the expectation expression is exactly the state-action value function definition $Q^\pi(s, a)$, so we can replace the term as shown below.
+\[ V^\pi(s) = \sum_a\pi(a_0=a|s_0=s) Q^\pi(s, a) \]
+Thus, we have shown the relationship between the state value function $V^\pi(s)$ and state-action value function $Q^\pi(s,a)$ is given as $V^\pi(s) = \sum_a\pi(a|s) Q^\pi(s, a)$.
+The purpose of the state value function (or state-action value function) is to derive a policy in RL. This is because the state value function (or state-action value function) encodes the future reward, so finding the policy that maximizes this yields the optimal policy.
+We can now define a recursive relationship among each state value function known as the Bellman equation as shown below.
+\[ V^\pi(s) = \sum_a \pi(a|s)\sum_{s'}p(s'|s,a)[r(s', a, s) + \gamma V^\pi(s')] \]
+Here, $\pi(a|s)$ represents following a fixed policy, $p(s'|s,a)$ is the transition probability, $r(s', a, s)$ is the reward for the respective transition, and $V^\pi(s')$ is the 'neighboring' state value function. Thus, the two summations exhaustively consider all possible transitions to neighboring states in the MDP.
+We now show that this relationship holds. We start with the definition of $V^\pi$ as shown below.
+\[ V^\pi(s_0) = \mathds{E}_p [\gamma^0 r_0 + \gamma^1 r_1 + \gamma^2 r_2 + \dots | s_0] = \mathds{E}_p \left[\sum_{t=0}^\infty \gamma^tr_t|s_0 \right] \]
+We can remove $r_0$ from the summation and change the summation index accordingly as shown below.
+\[ V^\pi(s_0) = \mathds{E}_p \left[r_0 + \sum_{t=1}^\infty \gamma^tr_t \middle| s_0 \right] \]
+Next, we apply the definition of expectation $E[X] = \sum_i x_ip(x_i)$ and split the summation into two nested summations as shown below.
+\[ V^\pi(s_0) = \sum_{s_{1:\infty},a_{0:\infty}} p(s_{1:\infty},a_{0:\infty}) \left[r_0 + \sum_{t=1}^\infty \gamma^tr_t\middle|s_0 \right] = \sum_{a_{0:\infty}}\sum_{s_{1:\infty}} p(s_{1:\infty},a_{0:\infty}) \left[r_0 + \sum_{t=1}^\infty \gamma^tr_t\middle|s_0 \right] \]
+Note that $p(s_{1:\infty},a_{0:\infty}) = p(s_{2:\infty},a_{1:\infty})p(s_{1},a_{0})$ and $p(s_{1},a_{0}) = p(s_{1}|a_{0})p(a_0) = p(s_{1}|s_0, a_0)\pi(a_0|s_0)$. Using this and by splitting each summation into two nested summations, we obtain the next expressions shown below.
+\[ V^\pi(s_0) = \sum_{a_{0}}\sum_{s_{1}} p(s_{1},a_{0}) \left[r_0 + \sum_{a_{1:\infty}}\sum_{s_{2:\infty}} p(s_{2:\infty},a_{1:\infty}) \sum_{t=1}^\infty \gamma^tr_t\middle|s_1 \right] \]
+\[ V^\pi(s_0) = \sum_{a_{0}}\sum_{s_{1}} p(s_{1}|s_0, a_0)\pi(a_0|s_0) \left[r_0 + \sum_{a_{1:\infty}}\sum_{s_{2:\infty}} p(s_{2:\infty},a_{1:\infty}) \sum_{t=1}^\infty \gamma^tr_t\middle|s_1 \right] \]
+By applying the definition of expectation $E[X] = \sum_i x_ip(x_i)$, we can collapse the inner summation as shown below.
+\[ V^\pi(s_0) = \sum_{a_{0}}\sum_{s_{1}} p(s_{1}|s_0, a_0)\pi(a_0|s_0) \left[r_0 + \mathds{E}_p \left[\sum_{t=1}^\infty \gamma^tr_t\middle|s_1 \right]\right] \]
+Note that the expectation expression is exactly $\gamma V^\pi(s_1)$, so we can replace the term and rearrange the summations as shown below.
+\[ V^\pi(s_0) = \sum_{a_{0}}\pi(a_0|s_0)\sum_{s_{1}} p(s_{1}|s_0, a_0) \left[r_0 + \gamma V^\pi(s_1)\right] \]
+This holds recursively regardless of the state.
+The proof of the recursive relationship of neighboring state-action value functions is similar. Once again, we start with the definition of $Q^\pi(s_0, a_0)$ as shown below.
+\[ Q^\pi(s_0,a_0) = \mathds{E}_p [\gamma^0 r_0 + \gamma^1 r_1 + \gamma^2 r_2 + \dots | s_0,a_0] = \mathds{E}_p \left[\sum_{t=0}^\infty \gamma^tr_t|s_0, a_0 \right] \]
+We can remove $r_0$ from the summation and change the summation index accordingly as shown below.
+\[ Q^\pi(s_0,a_0) = \mathds{E}_p \left[r_0 + \sum_{t=1}^\infty \gamma^tr_t\middle|s_0, a_0 \right] \]
+Next, we apply the definition of expectation $E[X] = \sum_i x_ip(x_i)$ and split the summation into two nested summations as shown below.
+\[ Q^\pi(s_0,a_0) = \sum_{s_{1:\infty}} p(s_{1:\infty},a_{1:\infty}) \left[r_0 + \sum_{t=1}^\infty \gamma^tr_t\middle|s_0, a_0 \right] \]
+Note that $p(s_{1:\infty},a_{1:\infty}) = p(s_{2:\infty},a_{1:\infty})p(s_{1})$ and $p(s_{1}) = p(s_{1}|s_0, a_0)$. Using this and splitting the summation into two nested sums, we can then apply the definition of expectation $E[X] = \sum_i x_ip(x_i)$ to obtain the expressions shown below.
+\[ Q^\pi(s_0,a_0) = \sum_{s_{1}} p(s_{1}|s_0, a_{0}) \left[r_0 + \sum_{s_{2:\infty}} p(s_{2:\infty},a_{1:\infty})\sum_{t=1}^\infty \gamma^tr_t\middle|s_0, a_0 \right] \]
+\[ Q^\pi(s_0,a_0) = \sum_{s_{1}} p(s_{1}|s_0, a_{0}) \left[r_0 + \mathds{E}_p\left[\sum_{t=1}^\infty \gamma^tr_t\middle|s_1 \right] \right] \]
+We can insert a dependence of the expectation on $a_1$ and marginalize it to obtain the expression shown below.
+\[ Q^\pi(s_0,a_0) = \sum_{s_{1}} p(s_{1}|s_0, a_{0}) \left[r_0 + \sum_{a_1}\pi(a_1|s_1)\mathds{E}_p\left[\sum_{t=1}^\infty \gamma^tr_t\middle|s_1, a_1 \right] \right] \]
+Note that the expectation expression is exactly $Q^\pi(s_1, a_1)$, so we can replace the term as shown below.
+\[ Q^\pi(s_0,a_0) = \sum_{s_{1}} p(s_{1}|s_0, a_{0}) \left[r_0 + \sum_{a_1}\pi(a_1|s_1)Q^\pi(s_1, a_1) \right] \]
+This holds recursively regardless of the state-action pair.
+These Bellman equations are important for the following reasons:
+\begin{itemize}
+    \item They define a recursive relationship between neighboring value functions
+    \item They are used to derive the Bellman optimality equation
+    \item They provide a constraint for optimization
+    \item They are used in a myriad of algorithms for solving optimal value or policy functions
+\end{itemize}
+
+\subsection{Optimal Policies}
+A policy is said to be better if it provides more reward to the agent. That is, $\pi_1$ is strictly better than $\pi_2$ if $V^{\pi_1}(s) > V^{\pi_2}(s)\, \forall s$ or $Q^{\pi_1}(s,a) > Q^{\pi_2}(s,a)\, \forall s,a$. Thus, we can state that the best policy $\pi^*$ ensures that $V^{\pi^*}(s) = \max_\pi V^\pi(s)\, \forall s$ or $Q^{\pi^*}(s,a) = \max_\pi Q^\pi(s,a)\, \forall s,a$. Recall that $V^\pi(s) = \sum_a\pi(a|s) Q^\pi(s, a)$. Under an optimal policy $\pi^*$, then it follows that $V^{\pi^*}(s) = \max_a Q^{\pi^*}(s, a)$. This is because the optimal policy will always choose the action $a$ that maximizes the total reward in state $s$, so it is inherently deterministic. The Bellman optimality equations, which are recursive relationship between value functions under an optimal policy, are shown below.
+\[ V^{\pi^*}(s) = \max_a \sum_{s'} p(s'|s,a)[r_t + \gamma V^{\pi^*}(s')] \]
+\[ Q^{\pi^*}(s,a) = \sum_{s'} p(s'|s,a)[r(s) + \gamma\max_{a'}Q^{\pi^*}(s',a')] \]
+There are alternative forms of the above equations that are equivalent. These are shown below.
+\[ V^{\pi^*}(s) = \max_a Q^{\pi^*}(s, a) \]
+\[Q^{\pi^*}(s,a) = \sum_{s'} p(s'|s,a)[r(s) + \gamma V^{\pi^*}(s')] \]
+We can derive the Bellman optimality equation (for the state value function) by first starting with the relationship between $V^\pi(s)$ and $Q^\pi(s,a)$ that holds under an optimal policy $\pi^*$ shown below.
+\[ V^{\pi^*}(s) = \sum_a\pi^*(a|s) Q^{\pi^*}(s, a) \]
+Since $\pi^*(a|s)$ is optimal, it follows that $\pi^*(a|s)$ will equal 1 for the action $a$ that maximizes $Q^{\pi^*}(s, a)$. Thus, we can rewrite the above expression as a maximization as shown below.
+\[ V^{\pi^*}(s) = \max_a Q^{\pi^*}(s, a) \]
+We can now replace $Q^{\pi^*}(s, a)$ with the definition $Q^\pi(s,a) = \mathds{E}_p \left[\sum_{t=0}^\infty \gamma^tr_t|s_0 = s, a_0 = a \right]$ as shown below.
+\[ V^{\pi^*}(s) = \max_a \mathds{E}_p \left[\sum_{t=0}^\infty \gamma^tr_t|s_0 = s, a_0 = a \right] \]
+We can remove $r_0$ from the summation and change the summation index accordingly as shown below.
+\[ V^{\pi^*}(s) = \max_a \mathds{E}_p \left[r_0 + \sum_{t=1}^\infty \gamma^tr_t|s_0 = s, a_0 = a \right] \]
+Next, we apply the definition of expectation $E[X] = \sum_i x_ip(x_i)$ and split the summation into two nested summations as shown below.
+\[ V^{\pi^*}(s) = \max_a \sum_{s_{1:\infty}} p(s_{1:\infty},a_{1:\infty}) \left[r_0 + \sum_{t=1}^\infty \gamma^tr_t\middle|s_0 = s, a_0 = a \right] \]
+Note that $p(s_{1:\infty},a_{1:\infty}) = p(s_{2:\infty},a_{1:\infty})p(s_{1})$ and $p(s_{1}) = p(s_{1}|s_0, a_0)$. Let $s_1 = s'$, then $p(s_{1:\infty},a_{1:\infty}) = p(s_{2:\infty},a_{1:\infty})p(s_{1} = s')$ and $p(s_{1} = s') = p(s_{1} = s'|s, a)$. Using this and splitting the summation into two nested sums, we can then apply the definition of expectation $E[X] = \sum_i x_ip(x_i)$ to obtain the expressions shown below.
+\[ V^{\pi^*}(s_0) = \max_a \sum_{s_{1}} p(s_{1}|s_0, a_{0}) \left[r_0 + \sum_{s_{2:\infty}} p(s_{2:\infty},a_{1:\infty})\sum_{t=1}^\infty \gamma^tr_t\middle|s_0, a_0 \right] \]
+\[ V^{\pi^*}(s) = \max_a \sum_{s'} p(s_{1} = s'|s, a) \left[r_0 + \mathds{E}_p\left[\sum_{t=1}^\infty \gamma^tr_t\middle|s_1 = s' \right] \right] \]
+Note that the expectation expression is exactly $\gamma V^{\pi^*}(s_1 = s')$, so we can replace the term and rearrange the summations as shown below.
+\[ V^{\pi^*}(s) = \max_a \sum_{s'} p(s_{1} = s'|s, a) \left[r_0 + \gamma V^{\pi^*}(s_1 = s') \right] \]
+Since the 0-th time step is arbitrary, we can obtain the desired expression by abstracting $r_0$ as $r_t$ to obtain the desired expression as shown below.
+\[ V^{\pi^*}(s) = \max_a \sum_{s'} p(s'|s, a) \left[r_t + \gamma V^{\pi^*}(s') \right] \]
+Note that the maximization operator included in the Bellman optimality equation (as opposed to the standard Bellman equation) is what differentiates the two equations. While the standard Bellman equation describes the expected total reward under any arbitrary policy, the Bellman optimality equation maximizes the expected total reward under a stationary policy. Using the Bellman optimality, we can solve for optimal policies, which is the goal of RL.
+
+\end{document} % Done!
+
+
+
