@@ -76,14 +76,14 @@
 In the last lecture, we learnt the Thompson Sampling in the Stochastic environment, EXP3 and EXP4 in the adversarial environment which is context-free and contextual respectively.
 
 \subsection{Thompsons Sampling: Beta-Bernoulli Bandit}
-We use beta-bernoulli distribution to estimate the each arm's reward function since these two are conjugate. Therefore the algorithm is shown as below:
+In Thompsons Sampling~\cite{thompson1933likelihood, chapelle2011empirical}, we assume each arm has a generative distribution and each reward is a sample from that distribution. Here we use beta-bernoulli distribution to estimate the each arm's reward function since these two are conjugate. Therefore the algorithm is shown as below:
 \begin{algorithm}
 \caption{Bern-Beta Thompsons Sampling}
 \begin{algorithmic}[1]
     \For{$t=1...T$}
         \State $\theta_t \sim p(\theta; \alpha_k, \beta_k), \forall k$ \hfill $\triangleright$ sample from posterior
         \State $a^{(t)}_{\hat{k}} = argmax_{k} \mathbb{E}_{p(r|a_k, \theta_k)} [r|a_k, \theta_k]$ \hfill $\triangleright$ predict
-        \State $REVEIVE(r^{(t)})$ \hfill $\triangleright$ get reward
+        \State $RECEIVE(r^{(t)})$ \hfill $\triangleright$ get reward
         \State $\alpha_{\hat{k}} = \alpha_{\hat{k}} + r^{(t)}$ 
         \State $\beta_{\hat{k}} = \beta_{\hat{k}} + 1 - r^{(t)}$ \hfill $\triangleright$ update posterior
     \EndFor
@@ -93,19 +93,19 @@ We use beta-bernoulli distribution to estimate the each arm's reward function si
 The regret of Thompson Sampling is $O(\sqrt{KT logT})$
 
 \subsection{EXP3}
-EXP3 stands for ``exponential-weight update algorithm for exploration and exploitation".
+EXP3~\cite{auer2002nonstochastic} stands for ``exponential-weight update algorithm for exploration and exploitation".
 
 \begin{algorithm}
 \caption{EXP3($\gamma \in [0,1]$)}
 \begin{algorithmic}[1]
 
-\State $\mathbf{\omega}^{(1)} \leftarrow \{ \omega_k^{(1)} = 1\}_{k=1}^{K}$ \hfill $\triangleright$ wights over actions
+\State $\mathbf{w}^{(1)} \leftarrow \{ w_k^{(1)} = 1\}_{k=1}^{K}$ \hfill $\triangleright$ wights over actions
     \For{$t=1...T$}
-        \State $p^{(t)} = \frac{\omega^{(t)}}{\sum_{k}\omega_{k}^{(t)}}$ \hfill $\triangleright$ probability over actions
+        \State $p^{(t)} = \frac{w^{(t)}}{\sum_{k}w_{k}^{(t)}}$ \hfill $\triangleright$ probability over actions
         \State $k \sim MULTINOMIAL(p^{(t)})$
         \State $a^{(t)} = a_k$ \hfill $\triangleright$ take and draw action
-        \State $REVEIVE(r^{(t)} \in [0,1])$ \hfill $\triangleright$ get reward
-        \State $\omega_{k}^{(t+1)} = \omega_{k}^{(t)} exp\{\gamma \cdot r^{(t)} / p_k^{(t)}\}$ \hfill $\triangleright$ update weight for one arm
+        \State $RECEIVE(r^{(t)} \in [0,1])$ \hfill $\triangleright$ get reward
+        \State $w_{k}^{(t+1)} = w_{k}^{(t)} exp\{\gamma \cdot r^{(t)} / p_k^{(t)}\}$ \hfill $\triangleright$ update weight for one arm
     \EndFor
 \end{algorithmic}
 \end{algorithm}
@@ -115,21 +115,21 @@ where the update term $r^{(t)}/p_k^{(t)}$ is the unbiased estimator.
 The regret of EXP3 is $O(\sqrt{TK log K})$ and it is a no regret algorithm.
 
 \subsection{EXP4}
-EXP4 stands for ``exponential-weight update algorithm for exploration and exploitation with experts".
+EXP4 stands for ``exponential-weight update algorithm for exploration and exploitation with experts". It uses contextual features (experts' advice) for each arm to select arms.
 
 \begin{algorithm}
 \caption{EXP4($\gamma \in [0,1], T$)}
 \begin{algorithmic}[1]
 
-\State $\mathbf{\omega}^{(1)} \leftarrow \{ \omega_k^{(1)} = 1\}_{k=1}^{K}$ \hfill $\triangleright$ wights over experts
+\State $\mathbf{w}^{(1)} \leftarrow \{ w_k^{(1)} = 1\}_{k=1}^{K}$ \hfill $\triangleright$ wights over experts
     \For{$t=1...T$}
         \State $RECEIVE(X^{(t)} \in \mathbb{R}^{N \times K})$ \hfill $\triangleright$ advice from N experts
-        \State $q^{(t)} = \frac{\omega^{(t)}}{||\omega^{(t)}||} \cdot X^{(t)} \in \Delta^K$ \hfill $\triangleright$ probability over actions
+        \State $q^{(t)} = \frac{w^{(t)}}{||w^{(t)}||} \cdot X^{(t)} \in \Delta^K$ \hfill $\triangleright$ probability over actions
         \State $k^{(t)} \sim MULTINOMIAL(q^{(t)})$ \hfill $\triangleright$ draw action
         \State $RECEIVE(r^{(t)})$ \hfill $\triangleright$ get reward
         \State $\hat{r}^{(t)} = \frac{r^{(t)}}{q_{k}^{(t)}} \mathbb{I}[k = k^{(t)}] \in \mathbb{I}^K$ \hfill $\triangleright$ reward over all arms
         \State $g^{(t)} = X^{(t)} \cdot \hat{r}^{(t)} \in \mathbb{R}^N$ \hfill $\triangleright$ per expert reward
-        \State $\omega_{n}^{(t+1)} = \omega_{n}^{(t)} exp\{\gamma \cdot g_n^{(t)}\} \forall n$ \hfill $\triangleright$ update weight for all arms
+        \State $w_{n}^{(t+1)} = w_{n}^{(t)} exp\{\gamma \cdot g_n^{(t)}\} \forall n$ \hfill $\triangleright$ update weight for all arms
     \EndFor
 \end{algorithmic}
 \end{algorithm}
@@ -161,7 +161,7 @@ Note that:\\
 3) For all problems including PWEA, OLC/OMD, MAB, C-MAB, their feedback is one-shot. \\
 4) For sequential problem such as RL, we have to reason about the impact of decisions on the entire sequence including the future. So we obtain a sequence of rewards, update the future predictor (value function), and then update the action predictor (policy).
 \begin{table}[]
-3\centering
+\centering
 \begin{tabular}{|l|l|l|l|}
 \hline
 Problem & Sampled & Evaluative & Sequential \\ \hline
@@ -215,7 +215,7 @@ We can model the markov decision process as a graphical model as shown in Fig.~\
 
 \begin{figure}[htbp]
     \centering
-\includegraphics[width=15cm]{imgs/graph_model.png}
+\includegraphics[width=12cm]{imgs/graph_model.png}
     \caption{Graphical model for markov decision process.}
     \label{fig:graph}
 \end{figure} 
@@ -255,10 +255,8 @@ Consider $Q^{\pi}(s, a)$ and $V^{\pi}(s)$, we can get:
 
 \begin{align*}
 V^{\pi}(s) &=\mathbb{E}\left[\sum_{t=0}^{\infty} \gamma^{t} r_{t} \mid s_{0}=s\right] \\
-&=\sum_{s_{1: \infty}, a_{0: \infty}} p\left(s_{1: \infty}, a_{0: \infty}\right)\left[\sum_{t=0}^{\infty} \gamma^{t} r_{t} \mid s_{0}=s\right] \\
-&=\sum_{s_{1: \infty}, a_{0}: \infty} \pi\left(a_{0} \mid s_{0}=s\right) p\left(s_{1: \infty}, a_{1: \infty}\right)\left[\sum_{t=0}^{\infty} \gamma^{t} r_{t} \mid s_{0}=s\right] \\
-&=\sum_{a} \pi\left(a_{0}=a \mid s_{0}=s\right) \sum_{s_{1: \infty}, a_{1: \infty}} p\left(s_{1: \infty}, a_{1: \infty}\right)\left[\sum_{t=0}^{\infty} \gamma^{t} r_{t} \mid s_{0}=s, a_{0}=a\right] \\
-&=\sum_{a} \pi\left(a_{0}=a \mid s_{0}=s\right) \mathbb{E}\left[\sum_{t=0}^{\infty} \gamma^{t} r_{t} \mid s_{0}=s, a_{0}=a\right] \\
+&\text{Conditional Expectation} \\
+&=\sum_{a}p(a_0=a | s_0=s) \mathbb{E}\left[\sum_{t=0}^{\infty} \gamma^{t} r_{t} \mid s_{0}=s ,a_0=a\right] \\
 &=\sum_{a} \pi(a \mid s) Q^{\pi}(s, a) \quad
 \end{align*}
 
@@ -266,7 +264,7 @@ V^{\pi}(s) &=\mathbb{E}\left[\sum_{t=0}^{\infty} \gamma^{t} r_{t} \mid s_{0}=s\r
 
 \subsubsection{Bellman Equation}
 
-We can change:
+We want to change:
 \begin{align*}
 V^{\pi}(s) =\sum_{a} \pi(a \mid s) Q^{\pi}(s, a) \quad
 \end{align*}
@@ -281,10 +279,40 @@ First we can change Q to:
 Q^{\pi}\left(s_{0}, a_{0}\right) &=\mathbb{E}\left[\gamma^{0} r_{0}+\gamma^{1} r_{1}+\gamma^{2} r_{2}+\cdots \mid s_{0}, a_{0}\right] \\
 &=\mathbb{E}\left[\sum_{t=0}^{\infty} \gamma^{t} r_{t} \mid s_{0}, a_{0}\right] \\
 &=\mathbb{E}\left[r_{0}+\sum_{t=1}^{\infty} \gamma^{t} r_{t} \mid s_{0}, a_{0}\right] \\
-&=\sum_{s_{1: \infty}} p\left(s_{1: \infty}, a_{1: \infty}\right)\left[r_{0}+\sum_{t=1}^{\infty} \gamma^{t} r_{t} \mid s_{0}, a_{0}\right] \\
-&=\sum_{s_{1}} p\left(s_{1} \mid s_{0}, a_{0}\right)\left\{r_{0}+\mathbb{E}\left[\sum_{t=1}^{\infty} \gamma^{t} r_{t} \mid s_{1}\right]\right\} \\
-&= \sum_{s_{1}} p\left(s_{1} \mid s_{0}, a_{0}\right)\left\{r_{0}+\gamma V^\pi(s_1)\right\} \\
+&=\mathbb{E}\left[r_{0} \mid s_{0}, a_{0}\right] + \mathbb{E}\left[\sum_{t=1}^{\infty} \gamma^{t} r_{t} \mid s_{0}, a_{0}\right] \\
 \end{align*}
+
+For $\mathbb{E}\left[\sum_{t=1}^{\infty} \gamma^{t} r_{t} \mid s_{0}, a_{0}\right]$ we have:
+
+\begin{align*}
+\mathbb{E}\left[\sum_{t=1}^{\infty} \gamma^{t} r_{t} \mid s_{0}, a_{0}\right] &= \gamma\mathbb{E}\left[Q^\pi (s_1, a_1) \mid s_{0}, a_{0}\right] \\
+&\text{Conditional Expectation} \\
+&= \gamma\sum_{s_1} p(s_1 | a_0, s_0) \mathbb{E}\left[Q^\pi (s_1, a_1) \mid s_{0}, a_{0}, s_{1}\right]
+\end{align*}
+
+For $\mathbb{E}\left[Q^\pi (s_1, a_1) \mid s_{0}, a_{0}, s_{1}\right]$  we have:
+\begin{align*}
+&\text{Markov property} \\
+\mathbb{E}\left[Q^\pi (s_1, a_1) \mid s_{0}, a_{0}, s_{1}\right] &= \mathbb{E}\left[Q^\pi (s_1, a_1) \mid s_{1}\right] \\
+&\text{Conditional Expectation} \\
+&= \sum_{a_1}p(a_1 | s_1) \mathbb{E}\left[Q^\pi (s_1, a_1) \mid s_{1}, a_1\right] \\
+&=\sum_{a_1} \pi(a_1 \mid s_1) Q^{\pi}(s_1, a_1) \quad \\
+&= V^\pi(s_1) \\
+\end{align*}
+
+So for $\mathbb{E}\left[\sum_{t=1}^{\infty} \gamma^{t} r_{t} \mid s_{0}, a_{0}\right]$ we have:
+\begin{align*}
+\mathbb{E}\left[\sum_{t=1}^{\infty} \gamma^{t} r_{t} \mid s_{0}, a_{0}\right] &= \gamma\sum_{s_1} p(s_1 | a_0, s_0) V^{\pi}(s_1)
+\end{align*}
+
+
+Finally we get:
+\begin{align*}
+Q^{\pi}\left(s_{0}, a_{0}\right) &= \mathbb{E}\left[r_{0} \mid s_{0}, a_{0}\right] + \gamma\sum_{s_1} p(s_1 | a_0, s_0) V^{\pi}(s_1) \\
+&= \sum_{s_1} p(s_1 | s_0, a_0)r(s_1,a_0,s_0) + \gamma\sum_{s_1} p(s_1 | a_0, s_0) V^{\pi}(s_1) \\
+V^{\pi}(s) &=\sum_{a} \pi(a \mid s) Q^{\pi}(s, a) \quad
+\end{align*}
+
 
 So we get our V value:
 \begin{align*}
@@ -294,7 +322,7 @@ V^{\pi}(s)=\sum_{a} \pi(a \mid s) \sum_{s^{\prime}} p\left(s^{\prime} \mid s, a\
 And then we continue to change Q value:
 \begin{align*}
 Q^{\pi}\left(s_{0}, a_{0}\right) &=\sum_{s_{1}} p\left(s_{1} \mid s_{0}, a_{0}\right)\left\{r_{0}+\sum_{a_{1}} \pi\left(a_{1} \mid s_{1}\right) \mathbb{E}\left[\sum_{t=1}^{\infty} \gamma^{t} r_{t} \mid s_{1}, a_{1}\right]\right\} \\
-&=\sum_{s_{1}} p\left(s_{1} \mid s_{0}, a_{0}\right)\left\{r_{0}+\sum_{a_{1}} \pi\left(a_{1} \mid s_{1}\right) Q^{\pi}\left(s_{1}, a_{1}\right)\right\}
+&=\sum_{s_{1}} p\left(s_{1} \mid s_{0}, a_{0}\right)\left\{r_{0}+\gamma\sum_{a_{1}} \pi\left(a_{1} \mid s_{1}\right) Q^{\pi}\left(s_{1}, a_{1}\right)\right\}
 \end{align*}
 
 For summary:
@@ -304,7 +332,7 @@ V^{\pi}(s) =\sum_{a} \pi(a \mid s) \sum_{s^{\prime}} p\left(s^{\prime} \mid s, a
 \end{equation}
 
 \begin{equation}
-Q^{\pi}(s, a) =\sum_{s^{\prime}} p\left(s^{\prime} \mid s, a\right)\left\{r\left(s^{\prime}, a, s\right)+\sum_{a^{\prime}} \pi\left(a^{\prime} \mid s^{\prime}\right) Q^{\pi}\left(s^{\prime}, a^{\prime}\right)\right\}
+Q^{\pi}(s, a) =\sum_{s^{\prime}} p\left(s^{\prime} \mid s, a\right)\left\{r\left(s^{\prime}, a, s\right)+\gamma\sum_{a^{\prime}} \pi\left(a^{\prime} \mid s^{\prime}\right) Q^{\pi}\left(s^{\prime}, a^{\prime}\right)\right\}
 \end{equation}
 
 
@@ -340,7 +368,12 @@ V^{\pi^{*}}(s) &=\sum_{a} \pi(a \mid s) Q^{\pi^{*}}(s, a) \\
 &= \max _{a} \sum_{s^{\prime}} p\left(s^{\prime} \mid s, a\right)\left[r_{0}+\gamma V^{\pi^{*}}\left(s^{\prime}\right)\right] \\
 \end{align*}
 
-
+\begin{align*}
+Q_^{\pi^*}(s,a) &= max_\pi Q_^{\pi}(s,a) \\
+&= \sum_{s'} p(s' | s, a)r(s',a,s) + \gamma\sum_{s'} p(s' | a, s) \ max_\pi\  V^{\pi}(s') \\
+&= \sum_{s'} p(s' | s, a)r(s',a,s) + \gamma\sum_{s'} p(s' | a, s) V^{\pi^*}(s') \\
+&= \sum_{s^{\prime}} p\left(s^{\prime} \mid s, a\right)\left[r(s)+\gamma \max _{a^{\prime}} Q^{\pi^{*}}\left(s^{\prime}, a^{\prime}\right)\right]
+\end{align*}
 
 
 
@@ -369,7 +402,7 @@ V^{\pi^{*}}(s) &=\sum_{a} \pi(a \mid s) Q^{\pi^{*}}(s, a) \\
 
 
 {
-\bibliography{refs}
+\bibliography{ref}
 \bibliographystyle{abbrv}
 }
 
