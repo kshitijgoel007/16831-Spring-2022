@@ -128,7 +128,7 @@ RL approaches can be broken down into three categories of methods: (1) Policy-ba
     \label{fig:vbc}
 \end{figure}
 
-In value-based control, the learning occurs through two parts. The first part is policy evaluation, otherwise known as the prediction step. In the policy evaluation step: the agent takes in some state of the environment and outputs a value function: the Q-values for each state-action. What makes this value-based control is that the agent maintains an explicit estimation of the value function. In the second step, the agent improves the policy, by taking an arg-max over actions under the new Q-values, $\pi(a|s) \leftarrow \argmax_a Q(s,a) \forall s$. The last lecture introduced Policy Iteration and Value Iteration, two value-based control algorithms, defined below.
+In value-based control, an explicit value function is used to select actions. The last lecture introduced Policy Iteration and Value Iteration, two value-based control algorithms, defined below. In Policy Iteration, the first step is policy evaluation, otherwise known as the prediction step. In the policy evaluation step: the agent takes in some state of the environment and outputs a value function: the Q-values for each state-action. What makes this value-based control is that the agent maintains an explicit estimation of the value function. In the second step, the agent improves the policy, by taking an arg-max over actions under the new Q-values, $\pi(a|s) \leftarrow \argmax_a Q(s,a) \forall s$. 
 
 \begin{algorithm}[H]
 \caption{Policy Iteration}
@@ -202,7 +202,7 @@ In model-free RL, nature only provides the learning algorithm with sampled feedb
 
 There are 2 ways in which we can compute the value function using sampled interaction with the environment:
 \begin{enumerate}
-    \item System Identification (Model-based RL): The system identification approach makes an approximation of the state transition dynamics and reward function based on repeated interactions. Once the algorithm has estimated the dynamics, it can convert the problem to a model-based prediction problem. 
+    \item System Identification: The system identification approach makes an approximation of the state transition dynamics and reward function based on repeated interactions. Once the algorithm has estimated the dynamics, it can convert the problem to a model-based prediction problem. 
     \item Model-free prediction: The approach directly estimates the value function based on interactions with the environment. This lecture will focus on Monte-Carlo and N-Step TD methods for model-free prediction.
 \end{enumerate}
 
@@ -438,6 +438,8 @@ The one-step TD target does not require access to future rewards.
 In this lecture, we covered Model-Free Value-based Reinforcement Learning. We covered Monte-Carlo and Temporal Differencing prediction. In model-free RL, the agent only has indirect access to the transition and reward dynamics by interacting with the environment. The agent can use interactions with the environment to compute Monte-Carlo estimates of the value function. There are multiple variants of Monte-Carlo prediction. Temporal Difference (TD) Prediction extends MC prediction for online updates to the value function based on actions taken by the agent policy, allowing for the algorithm to handle infinite horizon problems.
 
 % \section{Appendix}
+% \subsection{Convergence Speed Comparison of Policy Iteration and Value Iteration}
+% Both algorithms are guaranteed to converge to an optimal policy in the end. Yet, the policy iteration algorithm converges within fewer iterations. As a result, the policy iteration is reported to conclude faster than the value iteration algorithm.
 
 \section*{References}
 [1] Leslie Kaebling. Value Iteration Notes, 1996. \url{https://www.cs.cmu.edu/afs/cs/project/jair/pub/volume4/kaelbling96a-html/node19.html}
