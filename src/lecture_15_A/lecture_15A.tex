@@ -241,7 +241,7 @@ Convergence condition for policy iteration is,
 $$ V^{\pi_k}(s) = V^{\pi_{k+1}}(s) $$
 
 For this to hold true, $V^{\pi_k}(s) $ must also satisfy the bellman optimality condition
-$$ V^{\pi^k}(s) = \max_a \sum_{s`} p(s`|s,a)[r_t + \gamma V^{\pi^k}(s`)] $$
+$$ V^{\pi_k}(s) = \max_a \sum_{s`} p(s`|s,a)[r_t + \gamma V^{\pi_k}(s`)] $$
 
 Hence at convergence of policy iteration we get $ V^{\pi_k}(s) = V^{\pi_*}(s) $ which is the optimal policy we wanted.
 
