@@ -1,0 +1,625 @@
+\documentclass[11pt]{article}
+\usepackage{latexsym}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{epsfig}
+\usepackage{dsfont}
+\usepackage[tight]{subfigure}
+\setcounter{secnumdepth}{4}
+\bibliographystyle{ieeetr}
+
+
+\usepackage{amsmath}
+
+\DeclareMathOperator*{\minimize}{min}
+\DeclareMathOperator*{\maximize}{max}
+
+\usepackage{algorithm}
+ %on linux you may need to run sudo apt-get install texlive-full to install algorithm.sys
+\usepackage{algorithmic}
+
+\usepackage{verbatim}
+
+\newcommand{\handout}[5]{
+  \noindent
+  \begin{center}
+  \framebox{
+    \vbox{
+      \hbox to 5.78in { {#1} \hfill #2 }
+      \vspace{4mm}
+      \hbox to 5.78in { {\Large \hfill #5  \hfill} }
+      \vspace{2mm}
+      \hbox to 5.78in { {\em #3 \hfill #4} }
+    }
+  }
+  \end{center}
+  \vspace*{4mm}
+}
+
+\newcommand{\lecture}[5]{\handout{#1}{#2}{#3}{#4}{#5}}
+\newcommand{\collision}[0]{\mathrm{collision}}
+\newcommand{\nocollision}[0]{\overline{\collision}}
+
+\newcommand*{\QED}{\hfill\ensuremath{\square}}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{observation}[theorem]{Observation}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{claim}[theorem]{Claim}
+\newtheorem{fact}[theorem]{Fact}
+\newtheorem{assumption}[theorem]{Assumption}
+\newtheorem{note}[theorem]{Note}
+
+% 1-inch margins, from fullpage.sty by H.Partl, Version 2, Dec. 15, 1988.
+\topmargin 0pt
+\advance \topmargin by -\headheight
+\advance \topmargin by -\headsep
+\textheight 8.9in
+\oddsidemargin 0pt
+\evensidemargin \oddsidemargin
+\marginparwidth 0.5in
+\textwidth 6.5in
+
+\parindent 0in
+\parskip 1.5ex
+%\renewcommand{\baselinestretch}{1.25}
+
+\begin{document}
+
+\lecture{Statistical Techniques in Robotics (16-831, S22)}{Lecture \#12
+  (Monday, February 28)}{Lecturer: Kris Kitani}{Scribes: Alex Pletta, Benjamin Younes}{Bandit: Explore-Exploit}
+
+
+\section{Review}
+In the last lectures, we previously learned about multi-armed bandits and learned how they can be applied for a variety of applications. Bandits are used for partial feedback, as opposed to Prediction With Expert Advice (PWEA) which allows the learner to access all possible loss for each possible decision.
+
+A bandit is commonly modeled as a slot machine where, if selected (the bandit's "arm" is pulled), it can provide a reward based on an underlying probability distribution. Multi-Armed Bandit (MAB) problems contain more than one source for getting reward (i.e. multiple bandits).
+
+Previously, we discussed the problem formulation of multi-armed bandits, but did not address any solution methods. Commonly, multi-armed bandit problems seek to "pull" the sequence of arm(s) that deliver the highest expected reward. In some cases this simply involves finding the optimal bandit.
+
+%This section serves as a review of the previous lecture and any other context required to frame the content of the current lecture. 
+
+%You may format the scribes in any way you like, aside from changing font style, size and page format. Please use subsections and paragraphs to increase the readability of your notes.
+
+%Length requirement 1-2 pages.
+        
+\subsection{Multi-Armed Bandit}
+We recall the characteristics of the Multi-Armed Bandit problem \cite{bams/1183517370}:
+\begin{enumerate}
+    \item \textbf{One-Shot}: The MAB problem fundamentally has no concept of state. This means that any action taken by the learner at any time step has no effect on future probabilities. This means that each singular action leads to only one singular reward. This makes the problem One-Shot. 
+    \item \textbf{Exhaustive}: The MAB problem allows us to pull all of the levers over the course of the time series. Pulling one lever does not disqualify us from pulling any future lever(s). This makes the MAB problem exhaustive.
+    \item \textbf{Evaluative}: In the MAB problem, we receive instant feedback on our sampled reward. Functionally, this allows us to close the loop on weight updates every time step. This makes the MAB problem evaluative. 
+\end{enumerate}
+
+\subsection{Types of Bandits}
+
+There are many different types of bandits, depending on environment and context assumptions, as highlighted in Table \ref{tab:table1}. In the scope of this lecture, we will focus Context-free assumptions in a Stochastic environment. This means that each arm has a static reward distribution and that each pull gives a single sample from that distribution. We will be discussing Explore-Exploit and UCB.
+
+\begin{table}[ht!]
+  \begin{center}
+    \caption{Different types of bandits covered in this course.}
+    \label{tab:table1}
+    \begin{tabular}{|c|c|c|}
+      \hline
+        & \textbf{Context-free} & \textbf{Contextual}\\
+      \hline
+      \textbf{Stochastic environment} & \textit{Explore-Exploit, UCB} & linUCB\\
+      \hline
+      \textbf{Adversarial environment} & EXP3 & EXP4\\
+      \hline
+    \end{tabular}
+  \end{center}
+\end{table}
+
+\subsection{Key Assumptions for Multi-Armed Bandit}
+\begin{enumerate}
+    \item There is an underlying probability distribution which the learner does not have access to. This distribution determines reward for a single "arm pull".
+    \item The learner does not have access to any losses for any bandit that was not selected. 
+    \item The learner can only pull one arm at each step, and receives a single reward.
+    \item The learner knows how many total pulls (typically referred to as $T$) at the start of the problem. 
+    \item The learner has total access to sampling each bandit, and knows how many bandits there are. The number of bandits remains constant over all time steps. 
+\end{enumerate}
+
+% \definition{\normalfont\textbf{def example} is the assumption that the learner has access to the perfect hypothesis.}
+
+\section{Summary}
+
+In today's lecture, we will discuss how multi-armed bandit problems can be solved using explore-exploit algorithms. A natural question for such a problem is how to choose which arm to pull, especially considering the potential mean and variance of a certain bandit?
+
+Because this is a hidden information problem, we must first characterize the expected reward from each bandit in order to find which bandit(s) are worth pursuing.
+
+\subsection{Explore-Exploit Algorithm}
+\subsubsection{Notation Definition}
+
+\begin{align*}
+    &a_k \in A & \text{action (arm)} |\mathcal{A}| = K \\
+    & r^{(t)} & \text{reward (receive for given time $t$)} \\
+    & M & \text{Exploration steps (for each pull of an arm)} \\
+    & \hat{\mu}_k & \text{Expected reward for the $k$th arm} 
+\end{align*}
+
+
+\normalfont
+The Explore-Exploit Algorithm \cite{LAI19854} is listed as Algorithm \ref{algo:eea} below.
+
+\begin{algorithm}[H]
+\caption{Explore-Exploit Algorithm}
+\label{algo:eea}
+\begin{algorithmic}[1]
+\FOR{$k=1 \rightarrow K$ \hfill $\triangleright$ Explore over arms} 
+    \FOR{$m=1 \rightarrow M$ \hfill $\triangleright$ Iterate through all explore steps} 
+        \STATE $a = k$ \hfill $\triangleright$ Select the arm
+        \STATE $\textsc{Receive}(r)$ \hfill $\triangleright$ Get the reward.
+        \STATE $\hat{\mu}_k = \hat{\mu}_k + r / M$ \hfill $\triangleright$ Update the estimated mean for that arm.
+    \ENDFOR
+    \FOR{$t=KM\rightarrow T$ \hfill $\triangleright$ Exploit best arm }
+        \STATE $a^{(t)} = \text{argmax}_{k'} \hat{\mu}_k$ \hfill $\triangleright$ Select arm with maximum estimated reward
+    \ENDFOR
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+
+\subsection{Regret Bound for Explore-Exploit}
+
+As we will show, the regret bound for Explore-Exploit is:
+
+\begin{equation}
+    R_{\text{explore-exploit}} = O(K^{1/3}T^{2/3})
+\end{equation}
+
+where $K =$ the number of arms and $T =$ number of total time steps. This bound is no-regret, because the bound is sublinear with respect to $T$. 
+
+Before we can do the proof we need to understand Hoeffding's Inequality.
+
+\subsubsection{Hoeffding's Inequality}
+
+Hoeffding's Inequality comes from a paper written in 1963 \cite{10.2307/2282952}. This inequality fundamentally looks at the closeness of an empirical mean $\hat{\mu}$ to a true mean $\mu$. The difference between the two means is bounded by a confidence interval $\epsilon$ which decreases as a function of data received. Hoeffding's Inequality uses this concept to formulate a bounded probability. 
+
+\begin{theorem}{Hoeffding's Inequality}
+\textit{Consider a one-dimension distribution $\nu$ with expectation $\mu$, where any sample $r ~ \nu$ is bounded such that $r \in [0,1]$. Given $T$ i.i.d samples $\{r^{(t)}\}_{t=1}^T$ we have that for any $\epsilon$:}
+
+\begin{equation}
+    p(|\sum_{t=1}^T\frac{r^{(t)}}{T} - \mu| \geq \epsilon) \leq 2e^{-2T\epsilon^2}
+\end{equation}
+
+This inequality captures the simplex probability of the empirical mean falling \textbf{outside} of the confidence interval on the true mean. 
+
+If we want the probability to be less than a specific value, we can let the RHS be assigned to a single threshold variable $\delta$. Let:
+
+\begin{equation}
+    \delta = 2e^{-2T\epsilon^2}
+\end{equation}
+
+Now we want to consider what the optimal confidence interval $\epsilon$ is for a given threshold $\delta$. Solving for $\epsilon$:
+
+\begin{align}
+    \delta &= 2e^{-2T\epsilon^2} \\
+    \log(\delta) &= \log(2e^{-2T\epsilon^2}) \\
+    \log(\delta) &= \log(2) -2T\epsilon^2 \\
+    \log(\delta) - \log(2)&= -2T\epsilon^2 \\
+    -\log(\delta) + \log(2)&= 2T\epsilon^2 \\
+    \log(2 / \delta) &= 2T\epsilon^2 \\
+    \frac{\log(2 / \delta)}{2T} &= \epsilon^2 \\
+    \sqrt{\frac{\log(2 / \delta)}{2T}} &= \epsilon
+\end{align}
+
+We can use this formulation of $\epsilon$ to calculate desired confidence interval based  on the desired probability threshold $\delta$. When this equality is true, then we can say the following.
+
+\begin{gather}
+    \sqrt{\frac{\log(2 / \delta)}{2T}} = \epsilon \\
+    p(|\sum_{t=1}^T\frac{r^{(t)}}{T} - \mu| \geq \epsilon) \leq \delta 
+\end{gather}
+
+We can re-formulate this probability to represent the probability of the empirical mean falling \textbf{inside} the confidence interval of the true mean. This is due to the fact that the entire confidence interval equals one over the entire probability distribution. 
+
+\begin{equation}
+    p(|\sum_{t=1}^T\frac{r^{(t)}}{T} - \mu| \leq \epsilon) < 1 - \delta
+\end{equation}
+
+We can say the \textbf{event} $\{|\hat{\mu} - \mu \| < \epsilon\}$ holds with probability $1-\delta$.
+\end{theorem}
+
+\subsubsection{Regret Bound Proof for Explore-Exploit Algorithm}
+
+We now have the tools to prove the regret bound for the explore-exploit algorithm.
+
+This is broken down into the following steps:
+
+\begin{enumerate}
+    \item Define regret bound on exploration phase
+    \item Define regret bound on exploitation phase
+    \begin{enumerate}
+        \item Define potential function 
+        \item Find upper bound for the potential function
+        \item Find lower bound for the potential function
+        \item Combine the upper and lower bounds
+        \item Solve for the final bound
+    \end{enumerate}
+\end{enumerate}
+
+\paragraph{Step 1: Define regret bound on exploration phase}
+\noindent \\
+By the algorithm, exploration is comprised of of $KM$ pulls. Therefore, a trivial upper bound is when all pulls result in zero reward. This upper bounds the regret as:
+
+\begin{equation}
+    R_{\text{explore}} \leq O(KM)
+\end{equation}
+
+\paragraph{Step 2a: Define potential function for exploitation phase}
+\noindent \\
+Let the potential function be an inequality defined as:
+
+\begin{equation}
+    \hat{\mu}_{\hat{k}} \geq \hat{\mu}_{k^\star}
+\end{equation}
+
+where $\hat{\mu}_{\hat{k}}$ is equal to the highest estimated reward mean, and $\hat{\mu}_{k^\star}$ is the true highest reward mean. 
+
+\paragraph{Step 2b: Upper bound for exploitation phase}
+\noindent \\
+To upper bound the potential function, we must bound the highest estimated reward mean  $\hat{\mu}_{\hat{k}}$. From Hoeffding's Inequality, we can use the confidence bound from the difference between the estimated and true mean for the $\hat{k}$ arm, and then substitute the optimal value for $\epsilon$. Note that in case the equation for $\epsilon$ uses $M$ instead of $T$ because that is the number of iterations performed in the exploration phase.
+
+\begin{align}
+    \hat{\mu}_{\hat{k}} &\leq \mu_{\hat{k}} + \epsilon \\
+    &\leq \mu_{\hat{k}} + \sqrt{\frac{\log(2 / \delta)}{2M}}
+\end{align}
+
+\paragraph{Step 2c: Lower bound for exploitation phase}
+\noindent \\
+To bound the lower bound the potential function, we must now bound the true highest reward mean $\hat{\mu}_{k^\star}$. We can again use Hoeffding's Inequality, but this time with the lower confidence interval.
+
+\begin{align}
+    \hat{\mu}_{k^\star} &\geq \mu_{k^\star} - \epsilon \\
+    &\geq \mu_{k^\star} - \sqrt{\frac{\log(2 / \delta)}{2M}}
+\end{align}
+
+\paragraph{Step 2d: Combine the upper and lower bounds for exploitation phase}
+\noindent \\
+We start with the original potential function and then substitute the upper and lower bounds:
+
+\begin{align}
+    \hat{\mu}_{\hat{k}} &\geq \hat{\mu}_{k^\star} \\
+    \mu_{\hat{k}} + \sqrt{\frac{\log(2 / \delta)}{2M}} \geq \hat{\mu}_{\hat{k}} &\geq \hat{\mu}_{k^\star} \geq \mu_{k^\star} - \sqrt{\frac{\log(2 / \delta)}{2M}} \\
+    \mu_{\hat{k}} + \sqrt{\frac{\log(2 / \delta)}{2M}} &\geq \mu_{k^\star} - \sqrt{\frac{\log(2 / \delta)}{2M}}
+\end{align}
+
+\paragraph{Step 2e: Solve for the final bound}
+\noindent \\
+Now we will rearrange to solve for the final bound on the regret.
+
+\begin{equation}
+    \mu_{k^\star} - \mu_{\hat{k}} \leq 2\sqrt{\frac{\log(2 / \delta)}{2M}}
+\end{equation}
+
+The regret for all time steps of exploitation is the summation of difference in means over all the time steps. Since exploitation occurs from step $KM$, when exploration finishes, until $T$, then the RHS of the equation will be multiplied by that many steps (i.e. $T - KM$). This is an upper bound on the exploitation regret.
+
+\begin{equation}
+    R_{\text{exploit}} = \sum_{t=KM+1}^T (\mu_{k^\star}^{(t)} - \mu_{\hat{k}}^{(t)}) \leq (T - KM) 2\sqrt{\frac{\log(2 / \delta)}{2M}}
+\end{equation}
+
+Using Big-$O$ notation, this inequality is on the order of:
+
+\begin{equation}
+    R_{\text{exploit}} \leq O(2(T-KM)\sqrt{\frac{1}{M}})
+\end{equation}
+
+Finally, to get the full regret bound on explore-exploit we simply combine the respective explore and exploit bounds:
+
+\begin{align}
+    R_{\text{explore-exploit}} &=  R_{\text{explore}} + R_{\text{exploit}} \\
+    R_{\text{explore-exploit}} &=  O(KM) + O(2(T-KM)\sqrt{\frac{1}{M}}) \\
+    R_{\text{explore-exploit}} & \leq  KM + 2T\sqrt{\frac{1}{M}}
+\end{align}
+
+This is an elegant bound, but it is not yet no regret. In order to make the algorithm no-regret, we must solve for an optimal $M$. 
+
+\paragraph{Solving for optimal $M$ to have no-regret upper bound}
+\noindent \\
+We can solve for the optimal $M$ by setting the derivative of regret with respect to $M$, to zero. 
+
+\begin{align}
+    0 &= \frac{\partial}{\partial M} \{KM + 2T \sqrt{\frac{1}{M}}\} \\
+    &= K - 2T \frac{1}{2} M^{-3/2} \\
+    TM^{-3/2} &= K \\
+    M^{-3/2} &= \frac{K}{T} \\
+    M &= (\frac{T}{K})^{2/3}
+\end{align}
+
+Note that this solution for $M$ relies on the assumption that we know how many $T$ time steps will be performed.
+
+We can now plug the optimal $M$ back into the regret bound to get:
+
+\begin{align}
+    R_{\text{explore-exploit}} &=  R_{\text{explore}} + R_{\text{exploit}} \\
+    R_{\text{explore-exploit}} & \leq  KM + 2T\sqrt{\frac{1}{M}} \\
+    &= K(\frac{T}{K})^{2/3} + 2T\sqrt{(\frac{T}{K})^{-2/3}} \\
+    &=  K(\frac{T}{K})^{2/3} + 2T(\frac{T}{K})^{-1/3} \\
+    &= K^{1/3}T^{2/3} + 2 T^{2/3} K^{1/3} \\
+    &= 3K^{1/3} T^{2/3}
+\end{align}
+
+In Big-$O$ notation, the final no-regret bound is then:
+
+\begin{equation}
+    R_{\text{explore-exploit}} \leq O(K^{1/3} T^{2/3})
+\end{equation}
+
+We can see that this is sublinear with respect to $T$ and thus no-regret.
+    
+\subsection{Upper Confidence Bound}
+
+We saw in the previous section that solving the MAB problem balances a tradeoff between exploration and exploitation. The Upper Confidence Bound algorithm provides a different of making this balance. The algorithm does so by starting to exploit earlier and continuing to explore later than the more naive Explore-Exploit algorithm introduced earlier. 
+
+\subsubsection{Notation Definition}
+
+\begin{align}
+    &k^{(t)} &\text{bandit arm pulled at time step $t$} \\
+    &r^{(t)} &\text{reward feedback at time step $t$} \\
+    &T_k^{(t)} & \text{number of times that a specific arm $k$ was pulled up to time step $t$}
+    &\mu_k & \text{the underlying mean reward function of arm $k$} \\
+    &\hat{\mu}_k^{(t)} & \text{the estimated mean reward function of arm $k$ at time step $t$} \\
+    &T &\text{Total number of time steps}
+\end{align}
+
+We will now take a look at the algorithm for the Upper Confidence Bound, as Algorithm \ref{algo:ucb}:
+
+\begin{algorithm}[H]
+\caption{UCB Algorithm}
+\label{algo:ucb}
+\begin{algorithmic}[1]
+\FOR{$t=1 \rightarrow T$ \hfill $\triangleright$ Loop through all time history} 
+    \IF{$t \leq K$}
+        \STATE $k = t$ \hfill $\triangleright$ Pull every arm at least once.
+    \ELSE
+        \STATE $k = \text{argmax}_{k'}(\hat{\mu}_{k'} + \sqrt{\frac{\log(2T/\delta')}{2T_{k'}^{(t)}}})$ \hfill $\triangleright$ Select the arm based on the summation of current mean estimate and current upper confidence bound.
+    \ENDIF
+    \STATE $\textsc{Receive}(r^{(t)})$ \hfill $\triangleright$ Get reward from nature.
+    \STATE $T_{k}^{(t)} = T_{k}^{(t')} + 1$ \hfill $\triangleright$ Update pull counter for that arm.
+    \STATE $\hat{\mu}_k = \frac{1}{T_{k}^{(t)}} (\hat{\mu}_k (T_{k}^{(t)} - 1) + r^{(t)})$ \hfill $\triangleright$ Update estimated mean for the arm $k$.
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+Before going on, let's take a closer look at the arm selection step. 
+
+\begin{equation}
+    k = \text{argmax}_{k'}(\hat{\mu}_{k'} + \sqrt{\frac{\log(2T/\delta')}{2T_{k'}^{(t)}}})
+\end{equation}
+
+This selection step tries to select the mean with highest estimated reward while introducing the upper confidence bound "bonus term". The upper confidence bound takes into account the number of pulls up to now $T_{k'}^{(t)}$ and the desired probability constant $\delta'$. This formulation is a result from Hoeffding's inequality and Union Bound. We will now further explain what this Union Bound means.
+
+\subsubsection{Union Bound}
+
+The Union Bound comes is derived from Boole's inequality. It is the probability of two separate events happening which may share underlying event probability. Functionally, this allows for the removal of double counting during a probability union.
+
+We know the union of two probabilities is:
+
+\begin{equation}
+    p(x_1 \cup x_2) = p(x_1) + p(x_2) - p(x_1 \cap x_2)
+\end{equation}
+
+Boole's inequality then creates the bound:
+
+\begin{equation}
+    p(x_1 \cup x_2) \leq p(x_1) + p(x_2)
+\end{equation}
+
+The probability of one event or the other occurring is less than or equal to the sum of both events happening independently.
+
+We now apply this concept to our scenario. Recall that for a single time step, the probability that a estimated mean will be outside of the confidence interval $\delta$ is bounded by the following equation:
+
+\begin{equation}
+    p(|\hat{\mu}_k^{(t)} - \mu_k| > \sqrt{\frac{\log(2/\delta)}{2T_k^{(t)}}}) \leq \delta
+\end{equation}
+
+Over a sequence of time steps, we can express this probability as a union of probabilities:
+
+\begin{equation}
+    p(\cup_{t=1}^T \{ |\hat{\mu}_k^{(t)} - \mu_k| > \sqrt{\frac{\log(2/\delta)}{2T_k^{(t)}}} \} )
+\end{equation}
+
+Following from Boole's inequality, the probability of either the estimate falling outside of the confidence interval or not is bounded by the probability of all estimates falling outside of that confidence interval. This can be written as the following:
+
+\begin{equation}
+     p(\cup_{t=1}^T \{ |\hat{\mu}_k^{(t)} - \mu_k| > \sqrt{\frac{\log(2/\delta)}{2T_k^{(t)}}} \} ) \leq \sum_{t=1}^T p(|\hat{\mu}_k^{(t)} - \mu_k| > \sqrt{\frac{\log(2/\delta)}{2T_k^{(t)}}})
+\end{equation}
+
+Recall that the probability of a single time step is bounded by $\delta$, so the sum over all time steps $T$ is bounded by $T\delta$:
+
+\begin{equation}
+    \sum_{t=1}^T p(|\hat{\mu}_k^{(t)} - \mu_k| > \sqrt{\frac{\log(2/\delta)}{2T_k^{(t)}}}) \leq T\delta = \delta'
+\end{equation}
+
+With this new $\delta'$, we can rewrite the confidence interval, as derived earlier, for the union event as:
+
+\begin{equation}
+    \epsilon' = \sqrt{\frac{\log(2T/\delta')}{2T_k^{(t)}}}
+\end{equation}
+
+We now have the tools we need to prove the regret bound on the UCB algorithm!
+
+\subsubsection{Regret Bound of UCB}
+
+We will show that the UCB algorithm has a no-regret bound because the bound is sublinear in $T$. The regret bound is:
+
+\begin{align}
+    R_{\text{UCB}} &= O(2\sqrt{\log(2T/\delta)}\sqrt{KT}) \\
+    &= O(\sqrt{KT})
+\end{align}
+
+Note that in this formulation $K$ is still the number of arms and $T$ is the selected time horizon.
+
+The proof is broken down into the following steps:
+
+\begin{enumerate}
+    \item Define base inequality for the potential function
+    \item Establish the upper bound using the confidence bound
+    \item Establish the lower bound using the confidence bound
+    \item Combine the confidence bounds
+    \item Solve for the final regret bound
+\end{enumerate}
+
+\paragraph{Step 1: Define base inequality for the potential function}
+\noindent \\
+The base inequality is derived from the observation that when the UCB algorithm makes a mistake, it will select a non-optimal arm. When this mistake is made, then it was because the estimated mean and respective upper confidence bound was greater than the estimated mean of the optimal arm with respective upper confidence bound. Recall that the estimated non-optimal mean and estimated optimal mean expressions are derived from Hoeffding's inequality and the Union Bound in the previous steps. 
+
+\begin{equation}
+    \hat{\mu}_k^{(t)} + \sqrt{\frac{\log(2T/\delta')}{2T_k^{(t)}}} \geq \hat{\mu}_{k^{\star}}^{(t)} + \sqrt{\frac{\log(2T/\delta')}{2T_{k^{\star}}^{(t)}}}
+\end{equation}
+
+This base inequality serves as the potential function for the remaining steps of the proof.
+
+\paragraph{Step 2: Establish the upper bound using the confidence bound}
+\noindent \\
+To establish an upper bound on the potential function, we now need to establish an upper bound on the estimated non-optimal mean and respective confidence interval. 
+
+Recall from Hoeffding's inequality that $\{ |\hat{\mu}^{(t)} - \mu| < \epsilon \}$ holds with probability $1-\delta$. In other words, the estimated mean for the non-optimal bound is upper bounded by the true mean for the non-optimal bound and the respective upper confidence bound. This theorem allows us to bound the mean, and then we can add the upper confidence to both sides to arrive at the final upper bound on the potential function:
+
+\begin{align}
+    \mu_k + \sqrt{\frac{\log(2T/\delta')}{2T_k^{(t)}}} &\geq \hat{\mu}_k^{(t)} \\ 
+    \mu_k + 2\sqrt{\frac{\log(2T/\delta')}{2T_k^{(t)}}} &\geq \hat{\mu}_k^{(t)} + \sqrt{\frac{\log(2T/\delta')}{2T_k^{(t)}}}
+\end{align}
+
+\paragraph{Step 3: Establish the lower bound using the confidence bound}
+\noindent \\
+Similar to the upper bound derivation, we can apply the same knowledge of Hoeffding's to the lower bound derivation. In this case, the true mean of the optimal arm \textit{subtracted} by the upper confidence bound is the lower bound on the estimated mean of the optimal arm. We can then again add the confidence bound to both sides to form the lower bound on the overall potential function. Note that on the RHS that the summation of negative and positive confidence bounds cancel out leaving only the true mean of the optimal arm.
+
+\begin{align}
+    \hat{\mu}_{k^{\star}}^{(t)} &\geq \mu_{k^{\star}} - \sqrt{\frac{\log(2T/\delta')}{2T_{k^{\star}}^{(t)}}} \\
+    \hat{\mu}_{k^{\star}}^{(t)} + \sqrt{\frac{\log(2T/\delta')}{2T_{k^{\star}}^{(t)}}} &\geq \mu_{k^{\star}} - \sqrt{\frac{\log(2T/\delta')}{2T_{k^{\star}}^{(t)}}} + \sqrt{\frac{\log(2T/\delta')}{2T_{k^{\star}}^{(t)}}} \\
+    \hat{\mu}_{k^{\star}}^{(t)} + \sqrt{\frac{\log(2T/\delta')}{2T_{k^{\star}}^{(t)}}} &\geq \mu_{k^{\star}}
+\end{align}
+
+
+\paragraph{Step 4: Combine the confidence bounds}
+\noindent \\
+We can now combine the upper and lower bounds together by relating them through the potential function:
+
+\begin{align}
+    \hat{\mu}_k^{(t)} + \sqrt{\frac{\log(2T/\delta')}{2T_k^{(t)}}} &\geq \hat{\mu}_{k^{\star}}^{(t)} + \sqrt{\frac{\log(2T/\delta')}{2T_{k^{\star}}^{(t)}}} \\
+    \mu_k + 2\sqrt{\frac{\log(2T/\delta')}{2T_k^{(t)}}} \geq \hat{\mu}_k^{(t)} + \sqrt{\frac{\log(2T/\delta')}{2T_k^{(t)}}} &\geq \hat{\mu}_{k^{\star}}^{(t)} + \sqrt{\frac{\log(2T/\delta')}{2T_{k^{\star}}^{(t)}}} \geq \mu_{k^{\star}} \\
+    \mu_k + 2\sqrt{\frac{\log(2T/\delta')}{2T_k^{(t)}}} &\geq \mu_{k^{\star}}
+\end{align}
+
+\paragraph{Step 5: Solve for the final regret bound}
+\noindent \\
+We can rearrange the final inequality as:
+
+\begin{align}
+    \mu_k + 2\sqrt{\frac{\log(2T/\delta')}{2T_k^{(t)}}} &\geq \mu_{k^{\star}} \\
+    \mu_{k^{\star}} - \mu_k &\leq 2\sqrt{\frac{\log(2T/\delta')}{2T_k^{(t)}}}
+\end{align}
+
+To get the final UCB regret bound, we can use the sum the difference between the optimal and selected mean distributions. Note that this step involves considerable algebraic steps. These notes will walk through and explain the large steps; we leave any intermediary steps to the concerned reader. In other words:
+
+\begin{align}
+    R_{\text{UCB}} &= \sum_{t=1}^T (\mu_{k^{\star}} - \mu_{k^{(t)}}) \\
+    &\leq \sum_{t=1}^T 2\sqrt{\frac{\log(2T/\delta')}{2T_k^{(t)}}}
+\end{align}
+
+We now factor the constants out of the summation.
+
+\begin{equation}
+    R_{\text{UCB}} \leq \frac{1}{2} \sqrt{\log(2T/\delta')} \sum_{t=1}^T \sqrt{\frac{1}{T_k^{(t)}}}
+\end{equation}
+
+We then sum over all arms:
+
+\begin{equation}
+    R_{\text{UCB}} \leq \frac{1}{2} \sqrt{\log(2T/\delta')} \sum_{t=1}^T \sum_{j=1}^K \mathds{1}[k^{(t)} == j] \sqrt{\frac{1}{T_j^{(t)}}}
+\end{equation}
+
+Next we simply swap the order of the summation:
+\begin{equation}
+    R_{\text{UCB}} \leq \frac{1}{2} \sqrt{\log(2T/\delta')} \sum_{j=1}^K \sum_{t=1}^T \mathds{1}[k^{(t)} == j] \sqrt{\frac{1}{T_j^{(t)}}}
+\end{equation}
+
+In this step we now sum $t$ over the time decay factor $T_j^{(t)}$, in place of summing the time decay factor $T_j^{(t)}$ over $t$. This reformulation condenses the indicator function into the sum:
+\begin{equation}
+    R_{\text{UCB}} \leq \frac{1}{2} \sqrt{\log(2T/\delta')} \sum_{j=1}^K \sum_{t=1}^{T_j^{(t)}} \sqrt{\frac{1}{t}}
+\end{equation}
+
+Note that here we can apply a useful inequality for integral bounds on summations:
+
+\begin{align}
+    \sum_{t=1}^T \sqrt{\frac{1}{t}} &= 1 + \sum_{t=2}^T \sqrt{\frac{1}{t}} \\
+    &\leq 1 + \int_{t=1}^{T} \sqrt{\frac{1}{t^2}} \,dt \\
+    &= 1 + 2 \sqrt{T} - 2 \\
+    &= 2\sqrt{T} - 1 \\
+    &\leq 2 \sqrt{T}
+\end{align}
+
+Using this inequality, we then rewrite our our inequality as:
+
+\begin{align}
+    R_{\text{UCB}} &\leq \frac{1}{2} \sqrt{\log(2T/\delta')} \sum_{j=1}^K 2 \sqrt{T_j^{(T)}} \\
+    R_{\text{UCB}} &\leq \sqrt{\log(2T/\delta')} \sum_{j=1}^K \sqrt{T_j^{(T)}} \\
+\end{align}
+
+We will now use Jensen's inequality.
+
+\begin{theorem}{Jensen's Inequality}
+
+Jensen's inequality upper bounds a sum of a function by a function of the sum. This is true when $f(x)$ is a concave function.
+
+\begin{equation}
+\sum_n p_n f(x_n) \leq f(\sum_n p_n x_n)
+\end{equation}
+
+In the context of our scenario:
+
+\begin{equation}
+    \sum_k \frac{1}{K} \sqrt{T_k} \leq \sqrt{\sum_k \frac{1}{K} T_k}
+\end{equation}
+
+\end{theorem}
+
+
+Applying Jensen's inequality to our scenario:
+
+\begin{align}
+    R_{\text{UCB}} &\leq \sqrt{\log(2T/\delta')} \sum_{j=1}^K \sqrt{T_j^{(T)}} \\
+    &\leq \sqrt{\log(2T/\delta')} K \frac{1}{K}\sum_{j=1}^K \sqrt{T_j^{(T)}} \\
+    &\leq \sqrt{\log(2T/\delta')} K \sqrt{\sum_{j=1}^K \frac{1}{K} T_j^{(T)}} \\
+    &= \sqrt{\log(2T/\delta')} K \sqrt{\frac{T}{K}} \\
+    &= \sqrt{\log(2T/\delta')} \sqrt{TK} \\
+    &\sim O(\sqrt{TK})
+\end{align}
+
+We see that in Big-$O$ notation, the regret bound on the UCB algorithm is sub-linear in $T$. This is a no-regret algorithm!
+
+
+\subsection{Comparing Explore-Exploit and UCB algorithms}
+We saw that the bounded regret for Explore-Exploit and UCB algorithms were:
+\begin{align}
+    R_{\text{Explore-Exploit}} &\leq  O(K^{1/3}T^{2/3}) \\
+    R_{\text{UCB}} &\leq  O(\sqrt{TK})
+\end{align}
+
+The regret bound for the UCB algorithm is better than the regret bound for the Explore-Exploit algorithm in terms of reliance on $T$. This is because the UCB algorithm better balances exploration and exploitation than the Explore-Exploit algorithm.
+
+We hope you enjoyed the lecture!
+
+
+%\section*{References}
+%Include your references here. Please cite any resources you found useful.	
+%Populate the refs.bib file or list your references manually. Be consistent in formatting!
+{
+\bibliography{refs}
+\bibliographystyle{abbrv}
+}
+
+%\section{Appendix}
+%This section provides any relevant background material that was not covered in the lectures, but was found to be useful for understanding the material. 
+%For example, derivations, theory underlying techniques employed, etc. 
+
+%Additionally, this section can summarizes applications or extensions of these techniques found in the literature. 
+
+\end{document} % Done!
+
+
