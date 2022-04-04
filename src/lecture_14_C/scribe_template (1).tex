@@ -178,13 +178,18 @@ As for the connection between the problems EXP3/EXP4, the EXP3 belongs to Multi-
 %
 Both of them provide one-shot and evaluative feedback. However, we can know the results of every arm in MAB but we can't implement that in the C-MAB since the reward function was only partial observed. So EXP4 got a sampled feedback, while EXP3 don't.
 
+\newpage
+
 \section{Summary}
+\begin{comment}
 \begin{figure}[H]
 \centering
     \includegraphics[width=0.7\textwidth]{1.png}
     \caption{The knowledge that we have covered up to now.}
 	\label{fig:3.2-original}
 \end{figure}
+\end{comment}
+
 
 \subsection{Comparison One-shot learning vs Sequential learning}
 Up to now, we have studied several online learning algorithms to figure out different problems. However, the feedback of them are all 'one-shot', which means that the samples are identically and independently distributed and will not affect the future state or action in the environment. However, in this course, we will move on to learn the \textbf{sequential} learning problems which all samples are drawn through 'interactions'~\cite{kaelbling1996reinforcement}. In this setting, each action taken in this step will affect the state in the future. Though the learning map is still for every state and action pairs, we only acquire feedback/reward after the whole sequence. We will firstly compare the supervised learning and reinforcement learning and then list several types of algorithms that we have learned up to now.
@@ -246,7 +251,10 @@ We could only update one (arm) parameter at a time. All these four algorithms ar
 %Length requirement 1-2 pages.
 
 \subsection{Concept Definitions of Markov Decision Process}
-A Markov decision process is a discrete-time stochastic control process~\cite{puterman1990markov}, which is a typical sequence decision making algorithm. Shown in Figure~\ref{fig:1}, it is a simple example of the Grid world which the whole space can be seen as a concrete space. The position that the robot stands can be seen as a state $S$, which is also an initial state. The initial position that the robot stands is a initial state $s_0$. In each step, the robot can select an action $a_0$ from the set of $\{up, down, left, right\}$. Finally, a sequence of states and actions form as a trajectory $\zeta = \{ s_0, a_0, s_1, a_1 \dots, s_T, a_T \}$. After the whole steps, we can acquire the feedback of the reward by adding each reward along the routes together. In conclusion, the whole process can be seen as Markov Decision Process.
+A Markov decision process is a discrete-time stochastic control process~\cite{puterman1990markov}, which is a typical sequence decision making algorithm.
+%Shown in Figure~\ref{fig:1}, it is a simple example of the Grid world which .
+%
+The Grid World is a simple example of MDP, which the whole space can be seen as a concrete space. The position that the robot stands can be seen as a state $S$, which is also an initial state. The initial position that the robot stands is a initial state $s_0$. In each step, the robot can select an action $a_0$ from the set of $\{up, down, left, right\}$. Finally, a sequence of states and actions form as a trajectory $\zeta = \{ s_0, a_0, s_1, a_1 \dots, s_T, a_T \}$. After the whole steps, we can acquire the feedback of the reward by adding each reward along the routes together. In conclusion, the whole process can be seen as Markov Decision Process.
 
 \begin{comment}
 \begin{figure}[H]
@@ -258,14 +266,15 @@ A Markov decision process is a discrete-time stochastic control process~\cite{pu
     \caption{The initial state, actions, and one trajectory of a simple example: Grid world.}
     \label{fig:1}
 \end{figure}
-\end{comment}
-
 \begin{figure}[H]
 \centering
     \includegraphics[width=0.7\textwidth]{2.png}
     \caption{A simple Grid world example.}
 	\label{fig:1}
 \end{figure}
+\end{comment}
+
+
 
 From it, the probability of a state-action trajectory is defined as:
 $$p\left(s_{0}, a_{0}, \cdots, s_{T}, a_{T}\right)$$
@@ -382,14 +391,19 @@ V^{\pi}(s) &=\mathbb{E}\left[\sum_{t=0}^{\infty} \gamma^{t} r_{t} \mid s_{0}=s\r
 \end{align*}
 
 \subsubsection{Bellman Equation}
-It describe the recurrent relationship between value functions under a policy. We can find its definition in the Figure below:
+It describe the recurrent relationship between value functions under a policy. We can find its definition as follows:
 
+$$V^{\pi}(s)=\sum_{a} \pi(a \mid s) \sum_{s^{'}}p(s^{'}\mid s,a)\left[r(s^{'},a,s)+\gamma V^{\pi}(s^{'})\right]$$
+
+\begin{comment}
 \begin{figure}[H]
 \centering
     \includegraphics[width=0.7\textwidth]{BE.png}
     \caption{The Bellman Equation.}
 	\label{fig:process}
 \end{figure}
+\end{comment}
+
 The process can be explained as follows. For the first sum, it sums for all the possibility of all action $a$ that for state $s$ can take. The second sum is the possibility to reach the state of $s^{'}$ under the condition of state $s$ and action $a$. The last part is the reward when transferring to $s^{'}$ and corresponding reward starting from $s^{'}$.
 
 The process of obtaining the equations of $V^{\pi}(s_0)$ and $Q^{\pi}(s_0, a_0)$ have been listed below: 
