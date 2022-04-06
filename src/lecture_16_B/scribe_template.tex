@@ -73,7 +73,7 @@
   (Monday, Mar 21)}{Lecturer: Kris Kitani}{Scribes: Siqi Chai, Jiajie Xu (Group B)}{Model-Free Value Prediction}
 
 \section{Review}
-In the previous lecture, we discussed value-based model-based control, also known as model-based reinforcement learning. It is named "value-based" because our agent is explicitly learning value function $V$ to choose the best policy. And it's called "model-based" because we assume that state transition dynamics $p(s^\prime|s,a)$ and reward function $r(s^\prime, a, s)$ are known from the environment. We covered two algorithms: policy iteration and value iteration. \\
+In the previous lecture, we discussed value-based model-based control, also known as model-based reinforcement learning. It is named "value-based" because our agent is explicitly learning value function $V$ to choose the best policy. And it's called "model-based" because state transition dynamics $p(s^\prime|s,a)$ and reward function $r(s^\prime, a, s)$ are either known from the environment, or we are trying to estimate them. We covered two algorithms: policy iteration and value iteration. \\
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.7\textwidth]{pic/RL_approaches.png}
@@ -84,7 +84,6 @@ The other two types of reinforcement learning approaches:
     \item Hybrid: combing value-based and policy-based methods. Current paradigm for research in this area
 \end{itemize}
 
-Value-based control consists of policy evaluation and policy improvement steps
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.9\textwidth]{pic/value_based_control.png}
@@ -92,13 +91,15 @@ Value-based control consists of policy evaluation and policy improvement steps
 \end{figure}
 
 The key to policy evaluation step is Bellman equation:
-\[ V^{\pi}(s)=\sum_{a} \pi(a \mid s) \sum_{s^{\prime}} p\left(s^{\prime} \mid s, a\right)\left[r\left(s^{\prime}, a, s\right)+\gamma V^{\pi}\left(s^{\prime}\right)\right] \]
-\begin{equation*}
+\begin{equation}
+V^{\pi}(s)=\sum_{a} \pi(a \mid s) \sum_{s^{\prime}} p\left(s^{\prime} \mid s, a\right)\left[r\left(s^{\prime}, a, s\right)+\gamma V^{\pi}\left(s^{\prime}\right)\right]
+\end{equation}
+\begin{equation}
 \begin{split}
 Q^{\pi}(s, a) &= \sum_{s^{\prime}} p\left(s^{\prime} \mid s, a\right) \left[r\left(s^{\prime}, a, s\right) + \gamma V^{\pi}\left(s^{\prime}\right) \right] \\
 &= \sum_{s^{\prime}} p\left(s^{\prime} \mid s, a\right) \left[r\left(s^{\prime}, a, s\right) + \gamma \sum_{a^{\prime}} \pi\left(a^{\prime} \mid s^{\prime}\right) Q^{\pi}\left(s^{\prime}, a^{\prime}\right) \right]
 \end{split}
-\end{equation*}
+\end{equation}
 Value-based control does not require accurate model prediction to predict optimized policy.
 
 \subsection{Policy Iteration}
@@ -136,16 +137,16 @@ to converge for the current $\pi$ before updating $\pi$, i.e. for each state, $\
 \clearpage
 \section{Summary}
 \subsection{Model-free Environment and Prediction}
-In model-free environment, we do not have access to transition dynamics and reward function from the environment. We can only interact with environment to collect interaction samples, which are in the form of quadruplets $\{s^\prime, r, s, a\}_{n=1}^N$
+In model-free environment, we do not have access to transition dynamics and reward function from the environment, and we make no attempt to estimate or use them. We will only interact with environment to collect interaction samples, which are in the form of quadruplets $\{s^\prime, r, s, a\}_{n=1}^N$
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.5\textwidth]{pic/model_free_environment.png}
 \end{figure}
 
-We need a new algorithm in the policy evaluation block in \ref{fig:value_based_control} to calculate value function. There are two methods, with a debate between which one is better in performance.
+When dealing with sampled interaction with the environment, there are two methods, with a debate between which one is better in performance.
 \begin{itemize}
-    \item system identification: Estimate $p(s^\prime|s,a)$ and $r(s^\prime, a, s)$ functions to fit N datapoints $\{s^\prime, r, s, a\}_{n=1}^N$, learn the dynamics and convert to model-based prediction problem, then use algorithms from last lecture
-    \item model-free prediction: directly measure/estimate the value function
+    \item Model-based RL: Estimate $p(s^\prime|s,a)$ and $r(s^\prime, a, s)$ functions to fit N datapoints $\{s^\prime, r, s, a\}_{n=1}^N$, learn the dynamics and convert to model-based prediction problem, same as last lecture
+    \item Model-free prediction: use a new algorithm for the policy evaluation block in Figure \ref{fig:value_based_control} to directly measure/estimate the value function
 \end{itemize}
 
 Next, we will cover several model-free prediction algorithms. The difference between on-policy and off-policy is how you draw samples (using current vs other policy)
@@ -166,9 +167,13 @@ Temporal Differencing \\
 The Monte Carlo algorithm is the most basic reinforcement learning algorithm. The goal is to learn the value function from the samples. We assume that we do not have access to the transition dynamics \(p(s' | s, a)\) and the reward function \(r(s', s, a)\). We are given the policy \(\pi(a|s)\) and the problem is to find the value function:
 \[Q(a, s)\]
 The problem itself is like test driving the policy in a environment. The reward function is recovered through interaction with the environment. Recall the state value function we introduced before:
-\[V^{\pi}(s) = E_{\pi, P} [\sum_{t=0}^T \gamma^t r_t | s_0=s]\]
+\begin{equation}
+V^{\pi}(s) = E_{\pi, P} [\sum_{t=0}^T \gamma^t r_t | s_0=s]
+\end{equation}
 The value of a state is the expected return under the MDP (Policy, dynamics, initial state distribution). We can rewrite it with a short-hand notation G representing the cumulative discounted reward over one episode, 
-\[V^{\pi}(s) = E_{\pi, P} [G | s_0=s]\]
+\begin{equation}
+V^{\pi}(s) = E_{\pi, P} [G | s_0=s]
+\end{equation}
 Note that, we do not have access to the transition dynamics, \(P\). Thus, in a model free setup, we cannot directly compute the value function through this formulation. To solve this problem in this setting, we use Monte Carlo estimate, that is, to interact with the environment many times and use the average return as the reward function.
 \begin{figure}[h]
 \centering
@@ -183,7 +188,9 @@ Note that, we do not have access to the transition dynamics, \(P\). Thus, in a m
 \end{tabular}
 \end{figure}
 Suppose we have a grid game defined as above. We start from \(s_0\), which is the first grid on the second row. In this case, if we want to estimate the value of state \(s_0\), we can use Monte Carlo estimate. We play the game for \(N\) times, and record the cumulative reward of each trajectory. After \(N\) games, we take the average over all the cumulative reward for each round, and use that value as the estimated rewad of \(s_0\):
-\[V(s_0) = \dfrac{1}{N} \sum_{i=1}^N G(s_0)\]
+\begin{equation}
+V(s_0) = \dfrac{1}{N} \sum_{i=1}^N G(s_0)
+\end{equation}
 
 \subsubsection{First Visit MC Prediction}
 The above procedure we seen is called the \hyperref[alg:fvmp]{First Visit MC Prediction algorithm}. On line 5 of the algorithm, in each episode, we drawn a trajectory following the distribution specified by environment \(\varepsilon\) and policy \(\pi\).Given a trajectory in each episode, we iteratively compute the award of each state along the trajectory. Note on line 7, we prevent updating a pre-calculated state award by enforcing the update to only happen on first visit to a state. If it is a first visit to a state (line 8, 9), we calculate the cumulative reward of this state by summing up all the upcoming reward along the trajectory after this state. We also add the counter \(N\) for this state by 1. Eventually, we return the average rewards as the Monte Carlo estimate of the reward function for policy \(\pi\)
@@ -210,13 +217,17 @@ The above procedure we seen is called the \hyperref[alg:fvmp]{First Visit MC Pre
 
 \subsubsection{First Visit Incremental MC Prediction}
 A variant of the above algorithm is the \hyperref[alg:fvimp]{First Visit Incremental MC Prediction}. The only difference to the previous algorithm is that here we incrementally update the value function, instead of averaging it by the very end. This is also called the 'offline' update. Note that on line 10, the update here is actually taking the weighted average. That is:
-\begin{align*}
+\begin{align}
+\begin{split}
     V(s) &= \frac{N(s) - 1}{N(s)} V(s) + \frac{1}{N(s)} G_e(s) \\
     &= V(s) - \frac{1}{N(s)} V(s) + \frac{1}{N(s)} G_e(s) \\
     &= V(s) + \frac{1}{N(s)} (G_e(s) - V(s))
-\end{align*}
+\end{split}
+\end{align}
 The reason we do this weighted average update is because it can generalize to a changing environment. If the environment changes during the algorithm roll out, we may want to forget older episode and adapt to newer ones. We can do so by weighting new updates with a \(\alpha\) factor, that is:
-\[V(s) = V(s) + \alpha (G_e(s) - V(s))\]
+\begin{equation}
+V(s) = V(s) + \alpha (G_e(s) - V(s))
+\end{equation}
 \begin{algorithm}
 \caption{FirstVisit-Incremental-MC-Prediction}
 \label{alg:fvimp}
@@ -277,13 +288,21 @@ Can we replace the pre-sampling of trajectories on line 4 with a online updated 
 In Temporal Difference Prediction algorithm, we introduce the idea of bootstrapping (from dynamic programming) to incrementally estimate values after every action, based on another estimate.
 
 Recall the value function update equation from Monte Carlo:
-\[ V(s)^{(t)} \leftarrow V(s^{(t)}) + \alpha (G^{(t)} - V(s^{(t)})) \]
+\begin{equation}
+V(s)^{(t)} \leftarrow V(s^{(t)}) + \alpha (G^{(t)} - V(s^{(t)}))
+\end{equation}
 The empirical reward $G^{(t)}$ can be estimated as the sum of immediate reward $r^{(t)}$ and discounted estimated value for the next time step $V(s^{(t+1)})$:
-\[ G^{(t)} = r^{(t)} + \gamma V(s^{(t+1)}) \]
+\begin{equation} \label{1s_td_target}
+G^{(t)} = r^{(t)} + \gamma V(s^{(t+1)})
+\end{equation}
 This sum is called \textbf{1-step TD target}, and $r^{(t)} + \gamma V(s^{(t+1)}) - V(s^{(t)})$ is called \textbf{TD error}. The 1-step TD update function can be written as:
-\[ V(s^{(t)}) \leftarrow V(s^{(t)}) + \alpha (r^{(t)} + \gamma V(s^{(t+1)}) - V(s^{(t)})) \]
+\begin{equation} \label{1s_td_update}
+V(s^{(t)}) \leftarrow V(s^{(t)}) + \alpha (r^{(t)} + \gamma V(s^{(t+1)}) - V(s^{(t)}))
+\end{equation}
 If we incrementally substitute value function with the sum of immediate reward and estimated value, we get the total reward for N-step TD:
-\[ G^{(t)}(N) = r^{(t)} + \gamma r^{(t+1)} + \cdots + \gamma ^{(N-1)} r^{(N-1)} +\gamma ^ N V(s^{(t + N)}) \]
+\begin{equation}
+G^{(t)}(N) = r^{(t)} + \gamma r^{(t+1)} + \cdots + \gamma ^{(N-1)} r^{(N-1)} +\gamma ^ N V(s^{(t + N)})
+\end{equation}
 Notice that if we have $N=T-t$, meaning that we sum all reward functions till time step T and don't do any estimation, the total reward function $G^{(t)}(\infty)$ becomes the same as Monte Carlo algorithm.
 
 Let's go back to the grid game and use it as an 1-step TD example. But this time at each state, we have a "memo" to tell us the estimated value function of the state \textcolor{blue}{(marked blue)}. This estimate needs to be initialized before time step 0, and will be updated for each action. In the example, $\gamma=1$, $\alpha=0.9$
@@ -300,9 +319,9 @@ Let's go back to the grid game and use it as an 1-step TD example. But this time
 \end{tabular}
 \end{figure}
 
-At s0, suppose the policy decide to go up, then using one step TD estimate:
+At s0, suppose the policy decide to go up, then using one step TD estimate in equation \ref{1s_td_target}:
 \[ G(1) = r + \gamma \cdot V(s^\prime) = -1 + 1 \cdot 10 = 9 \]
-Update value estimate at state 0 \textcolor{red}{(marked red)}:
+Update value estimate at state 0 using equation \ref{1s_td_update} \textcolor{red}{(marked red)}:
 \[ V(s0) \leftarrow V(s0) + \alpha (G(1) - V(s0)) \]
 \[ V(s0) = 8 + 0.9 \cdot (9-8) = 8.9 \]
 
@@ -352,10 +371,10 @@ Substitute line 4 of the above algorithm from TD 1-step to TD N-step, we get N-s
         \item Do not need reward for the full episode at time step t, only the next N steps
         \item For the above reason, Monte Carlo is called an offline/batch algorithm, while N-step TD is called online/incremental algorithm
         \item For the same reason, N-step TD can be used for non-terminating problem (infinite horizon)
-        \item N-step TD is more efficient, but the estimation is biased
+        \item N-step TD is more efficient, but the estimation is biased because it depends on value function estimation in future step
         \item TD prediction has low variance due to short sequence length
     \end{itemize}
-    \item Need to select the optimal N depending on the problem (hyperparameter)
+    \item Need to select the optimal N depending on the problem (hyperparameter), which contains a trade-off between higher variance and bias 
 \end{enumerate}
 
 %\section*{References}
