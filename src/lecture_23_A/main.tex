@@ -1,0 +1,390 @@
+\documentclass[11pt]{article}
+\usepackage{latexsym}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{epsfig}
+\usepackage[tight]{subfigure}
+\usepackage{optidef}
+\usepackage{amsmath}
+
+\DeclareMathOperator*{\minimize}{min}
+\DeclareMathOperator*{\maximize}{max}
+
+\usepackage{algorithm}
+ %on linux you may need to run sudo apt-get install texlive-full to install algorithm.sys
+\usepackage{algorithmic}
+
+\usepackage{verbatim}
+
+\newcommand{\handout}[5]{
+  \noindent
+  \begin{center}
+  \framebox{
+    \vbox{
+      \hbox to 5.78in { {#1} \hfill #2 }
+      \vspace{4mm}
+      \hbox to 5.78in { {\Large \hfill #5  \hfill} }
+      \vspace{2mm}
+      \hbox to 5.78in { {\em #3 \hfill #4} }
+    }
+  }
+  \end{center}
+  \vspace*{4mm}
+}
+
+\newcommand{\lecture}[5]{\handout{#1}{#2}{#3}{#4}{#5}}
+\newcommand{\collision}[0]{\mathrm{collision}}
+\newcommand{\nocollision}[0]{\overline{\collision}}
+
+\newcommand*{\QED}{\hfill\ensuremath{\square}}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{observation}[theorem]{Observation}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{claim}[theorem]{Claim}
+\newtheorem{fact}[theorem]{Fact}
+\newtheorem{assumption}[theorem]{Assumption}
+\newtheorem{note}[theorem]{Note}
+
+% 1-inch margins, from fullpage.sty by H.Partl, Version 2, Dec. 15, 1988.
+\topmargin 0pt
+\advance \topmargin by -\headheight
+\advance \topmargin by -\headsep
+\textheight 8.9in
+\oddsidemargin 0pt
+\evensidemargin \oddsidemargin
+\marginparwidth 0.5in
+\textwidth 6.5in
+
+\parindent 0in
+\parskip 1.5ex
+%\renewcommand{\baselinestretch}{1.25}
+
+\begin{document}
+
+\lecture{Statistical Techniques in Robotics (16-831, S22)}{Lecture \#23
+  (Wednesday, April 13)}{Lecturer: Kris Kitani}{Scribes: Xiaofeng Guo}{Linear Programming IRL}
+  
+  
+\section{Review}
+
+In last lecture, we introduced the concept of Imitation Learning. In this lecture, we will introduce one Inversve Reinforcement Learning (IRL) method: Linear Programming. In this section, we will review the concept of Imitation Learning.
+
+\subsection{Imitation Learning Overview}
+Different with normal Reinforcement Learning, which learns everything from sketch and takes a long time to learn, the main idea of Imitation Learning is to learn a policy from demonstrated expert behavior. Imitation Learning is found to be useful for robot learning especially when the state space is too large and would take too long to learn. However, expert demonstrations can speed up the learning process. Another common case is that the reward function is too complex to define, making the normal Reinforcement Learning method to be struggle. However, it is easier to just show examples for completing the tasks, where the Imitation Learning can work.
+
+\subsection{Problem Formulation}
+
+The Imitation Learning(IL) problem can be formed as:
+
+$$\mathcal{A}_{IL} : \langle \mathcal{D}^*, \pi^*, \mathcal{T}, R \rangle \rightarrow \pi$$
+
+$\mathcal{A}_{IL}$ denotes the Imitation learning algorithm. $\mathcal{D}^*$ denotes the expert demonstrations, which is a set of trajectories $\{ \zeta_n \}_{n=1}^{N}$ sampled from the optical policy $\pi^*$ interacting with the environment $\mathcal{E}$. $\pi^*$ denotes the optimal policy or “oracle”. However, we do not get the entire optimal policy during learning. What we can really get is the samples from the optimal policy $\pi^*$. $\mathcal{T}$ denotes the dynamics function of the environment $\mathcal{E}$. $\mathcal{R}$ denotes the reward function. $\pi$ denotes the estimated policy.
+
+\subsection{Different types of Imitation Learning}
+
+Given the formulation of the Imitation Learning problem, based on different assumptions, there are 3 types of Imitation Learning (IL): Passive IL, Active IL, and Interactive IL. The difference between them are show in Table \ref{tab:Imitation}. 
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|c|c|c|c|}
+         \hline
+         & Passive IL & Active IL & Interactive IL \\
+         \hline
+        Demonstrations $\mathcal{D}$ & yes & yes & optional \\
+        \hline
+        Environment $\mathcal{E}$ & no & yes & yes \\
+        \hline
+        Oracle $\pi^*$ & no & no & yes \\
+        \hline
+        Dynamics $\mathcal{T}$ & no & optional & optional \\
+        \hline
+        Reward $\mathcal{R}$ & no & optional & optional\\
+        \hline
+    \end{tabular}
+    \caption{Different Imitation Learning methods}
+    \label{tab:Imitation}
+\end{table}
+
+In Passive IL, which is commonly called behavior cloning, we can only get the expert demonstrations and cannot get the access to the environment, oracle, dynamics or reward functions. It is very similar to a supervised learning problem, where we optimized the estimate policy so that it is close to the expert demonstrations. However, it is easy to have the covariate shift problem. It only models short-term (one-shot) behavior and cannot model long-term behavior well.
+
+In Active IL, we get the expert demonstrations as well as the access to the environment $\mathcal{E}$. It is optional to get the access to the dynamic function or the reward function of the environment. It is like in addition to the passive IL, we can also do some reinforcement learning in the environment to improve the estimate policy.
+
+In the Interactive IL, we are optional to get the expert demonstrations. Instead of that, we are given the access to the environment and the oracle, which means that we can ask for the oracle feedback when we are acting in the environment.
+
+\subsection{Inverse Reinforcement Learning}
+Sometimes just mimicking expert demonstrations is not helpful because we can’t generalize to new environments. In addition to mimicking expert demonstrations, understanding why we should take such an action (reward function) could help us to generalize our learning better, which leads to the Inverse Reinforcement Learning. It is a type of Active IL, and its goal is to learn the reward function $R$ from expert demonstrations. With the learned reward function, we can take Reinforcement Learning to train a policy. More importantly, the algorithm can be transferred to a new similar environment.
+
+\section{Summary}
+\subsection{Linear Programming IRL}
+Here we discuss three Inverse Refinforcement Learning (IRL) scenarios:
+
+\begin{enumerate}
+\item IRL for finite state spaces;
+
+\item IRL for large state spaces;
+
+\item IRL from sampled trajectories.
+
+\end{enumerate}
+
+The solution of each scenario involves solving a linear program (LP) to obtain the reward function.
+
+\subsubsection{IRL for Finite State Spaces}
+
+First we make some assumptions here:
+
+\begin{enumerate}
+\item State space is finite;
+
+\item Transition model is known;
+
+\item Complete policy is known.
+
+\end{enumerate}
+
+Recall that the goal of IRL is to find a reward function such that the policy is optimal. To do that, we define the objective function to be:
+
+$$\max_{\mathbf{R}} \{ \sum_s Q^\pi(s,a^*) - \max_{a \neq a^*} Q^\pi(s,a) \},$$
+
+where $Q^\pi(s,a^*)$ denotes the cumulative reward of taking the best action and $\max_{a \neq a^*} Q^\pi(s,a)$ denotes the cumulative reward of the second best action. Therefore, here we are trying to maximize the cumulative reward difference between the best action and the second best action. In order to bound the reward function, we furthermore add a regularization term to make the objective function be:
+
+\begin{equation}
+\max_{\mathbf{R}} \{ \sum_s Q^\pi(s,a^*) - \max_{a \neq a^*} Q^\pi(s,a) \} - \lambda ||\mathbf{R}||_1
+\label{equation:objective}
+\end{equation}
+
+We will show that this is a linear equation in rewards $R$. Recall that we have
+
+$$Q^\pi(s,a) = R(s) + \gamma \sum_{s'} p(s'|s,a)V^\pi(s'), \quad \forall{s,a}$$
+
+
+If we express it in matrix form, we have:
+
+$$\mathbf{Q}^\pi(a) = (\mathbf{R}+\gamma\mathbf{P}_a\mathbf{V}^\pi), \quad \forall{a}$$
+
+where all the equations for some action expressed as a matrix.
+
+Likewise, we could express the V function:
+
+$$V^\pi(s) = R(s) + \gamma \sum_{s'} p(s'|s, a = \pi(s))V^\pi(s'), \quad \forall{s}$$
+
+in matrix form:
+\begin{equation}
+\begin{split}
+\mathbf{V}_\pi & = \mathbf{R} + \gamma \mathbf{P}_{a^*}\mathbf{V}_\pi\\
+\rightarrow \mathbf{V}_\pi & = (\mathbf{I}-\gamma \mathbf{P}_{a^*})^{-1}\mathbf{R}
+\end{split}
+\label{equ: vpi}
+\end{equation}
+
+Therefore, we could write the difference in Q-values in Equation \ref{equation:objective} in matrix form.
+
+\begin{equation}
+\begin{split}
+\mathbf{Q}^\pi(a^*) - \mathbf{Q}^\pi(a) & =(\mathbf{R} + \gamma \mathbf{P}_{a^*}) \mathbf{V}^\pi ) - (\mathbf{R} + \gamma \mathbf{P}_{a}) \mathbf{V}^\pi) \\
+& = \gamma(\mathbf{P}_{a^*} - \mathbf{P}_{a}) \mathbf{V}^\pi \\
+& = \gamma(\mathbf{P}_{a^*} - \mathbf{P}_{a}) (\mathbf{I} - \gamma\mathbf{P}_{a^*})^{-1} \mathbf{R}
+\end{split}
+\end{equation}
+
+Now we can express the objective function in matrix form:
+
+$$\arg \max_{\mathbf{R}}(\sum_s \min_a \{ (\mathbf{P}_{a^*}(s) - \mathbf{P}_{a}(s)) (\mathbf{I} - \gamma\mathbf{P}_{a^*})^{-1} \mathbf{R}\}) - \gamma ||\mathbf{R}||_1$$
+
+According to \cite{ng2000algorithms}, we add one more constraint to the problem. Based on the theory that the future payoff of the best action is greater than that of another action, we have:
+
+$$\sum_{s'} P(s'|s, a^*)V^\pi(s') \geq \sum_{s'} P(s'|s,a)V^\pi(s'), \quad \forall{s,a}$$
+
+By writing it in matrix form, we have:
+
+$$\mathbf{P}_{a*} \mathbf{V}_\pi \succeq \mathbf{P}_a\mathbf{V}_\pi, \quad \forall{a}$$
+
+where "$\succeq$" denote "element-wise inequality". Bring Equation \ref{equ: vpi} into it, we get:
+
+\begin{equation*}
+\begin{split}
+&\mathbf{P}_{a^*} (\mathbf{I} - \gamma\mathbf{P}_{a^*})^{-1} \mathbf{R} \succeq \mathbf{P}_{a} (\mathbf{I} - \gamma\mathbf{P}_{a^*})^{-1} \mathbf{R}\\
+\rightarrow &(\mathbf{P}_{a^*}- \mathbf{P}_{a}) (\mathbf{I} - \gamma\mathbf{P}_{a^*})^{-1} \mathbf{R} \succeq \mathbf{0}, \quad \forall{a \neq a^*}
+\end{split}
+\end{equation*}
+
+
+
+Therefore, for the finite state spaces scenario, we get the Linear Program Formulation:
+
+\begin{equation*}
+\begin{aligned}
+& \hat{\mathbf{R}}  =  & & \arg \max_{\mathbf{R}}(\sum_s \min_a \{ (\mathbf{P}_{a^*}(s) - \mathbf{P}_{a}(s)) (\mathbf{I} - \gamma\mathbf{P}_{a^*})^{-1} \mathbf{R}\}) - \gamma ||\mathbf{R}||_1 \\
+& \text{s.t.} & & (\mathbf{P}_{a^*}- \mathbf{P}_{a}) (\mathbf{I} - \gamma\mathbf{P}_{a^*})^{-1} \mathbf{R} \succeq \mathbf{0}, \quad \forall{a \neq a^*} \\
+& & & |R(s)| \leq R_{max}, \quad \forall{s \in S}
+\end{aligned}
+\end{equation*}
+
+We can solve it with linear program routine and we get the reward function $R$. However, when the state space is large, the linear programming problem is too big to solve. In that case, we need to change our method.
+
+\subsubsection{IRL for Large State Spaces}
+
+In this scenario, we get rid of the assumption that the state space is finite. It can be large or even infinite. We change the assumptions to be:
+
+\begin{enumerate}
+\item State space is large or infinite;
+
+\item Transition model is known;
+
+\item Complete policy is known.
+\end{enumerate}
+
+
+In this case, the reward function will be too big to store as a table and we need to  use an approximation function to estimate it. Here we use a linear function of some features of the state to approximate the reward function.
+
+\begin{equation*}
+R_\theta(s) = \theta_1\phi_1(s) + ... + \theta_d\phi_d(s) = \boldsymbol\theta^T \boldsymbol\phi(s)  
+\end{equation*}
+
+where $\boldsymbol\theta^T$ is the weight vector and $\boldsymbol\phi(s)$ are the features of a state. In this case, the value function is a linear function of expected state features $\boldsymbol\mu^\pi(s)$.
+
+
+\begin{equation}
+\begin{split}
+V^\pi(s) &= \mathbb{E}_p[\sum_{t=0}^\infty \gamma^tr(s^{(t)}) | s^{(0)} = s]\\
+& = \mathbb{E}_p[\sum_{t=0}^\infty \gamma^t \boldsymbol\theta \cdot \boldsymbol\phi(s^{(t)}) | s^{(0)} = s]\\
+& = \boldsymbol{\theta} \cdot \mathbb{E}_p [\sum_{t=0}^\infty \gamma^t \boldsymbol\phi(s^{(t)}) | s^{(0)} = s] \\
+& = \boldsymbol{\theta} \cdot \boldsymbol{\mu}^\pi(s)\\
+\rightarrow V^\pi(s) &= \boldsymbol\theta^T \boldsymbol\mu^\pi(s)    
+\end{split}
+\label{equ:vpi2}
+\end{equation}
+
+Based on the theory that the future payoff of the best action is greater 
+than that of another action, we have
+
+$$\sum_{s'} P(s'|s, a^*)V^\pi(s') \geq \sum_{s'} P(s'|s,a)V^\pi(s') \quad \forall{s,a}$$
+
+We would like to make this difference as big as possible by changing the   function.
+
+\begin{equation}
+\max_\theta(E_{s'\sim p(s,a^*)}[V^\pi(s')] - E_{s'\sim p(s,a)}[V^\pi(s')]) \quad \forall{s,a}  
+\label{equ: payoff}
+\end{equation}
+
+
+Recall that there may be infinite number of states in this scenario. We tackle it by only optimizing a finite subset of states.
+
+$$s\in S_0 \in \mathbf{S}$$
+
+We also don't need to optimize for all actions. Actually, comparing to the second best action is good enough. Then we change Equation \ref{equ: payoff} to:
+
+$$\max_\theta \min_a (\mathbb{E}_{p(s,a^*)}[V^\pi(s)] - \mathbb{E}_{p(s,a)}[V^\pi(s)]) \quad \forall{s \in S_0}$$
+
+Based on Equation \ref{equ:vpi2}, we know it is a linear function of reward parameters.
+
+We add one constraint to constraint the reward values: $|\theta_d| \leq 1, \forall{d}.$ Then we get the final IRL-LP optimization objective for large state spaces scenario.
+
+\begin{equation*}
+\begin{aligned}
+& \max_\theta \sum_{s\in S_0} \min_a (E_{s'\sim p(s,a^*)}[V^\pi(s')] - E_{s'\sim p(s,a)}[V^\pi(s')])\\
+& \text{s.t.} \quad |\theta_d| \leq 1 \quad \forall{d}
+\end{aligned}
+\end{equation*}
+
+We can solve it with linear program routine and we get the parametric reward function.
+
+In \cite{ng2000algorithms}, they made a small modification and put extra penalty on negative values.
+
+\begin{equation*}
+\begin{aligned}
+& \max_\theta \sum_{s\in S_0} \min_a g(E_{s'\sim p(s,a^*)}[V^\pi(s')] - E_{s'\sim p(s,a)}[V^\pi(s')])\\
+& \text{s.t.} \quad |\theta_d| \leq 1 \quad \forall{d}
+\end{aligned}
+\end{equation*}
+
+where
+
+\begin{equation*}
+g(x) =\left\{
+\begin{aligned}
+x \quad \quad & x\geq 0\\
+2x \quad \quad & \text{otherwise}
+\end{aligned}
+\right.
+\end{equation*}
+
+
+
+\subsubsection{IRL from sampled trajectories}
+In the above two scenarios, we make the assumptions that the transition model and the complete policy are both known, which is usually not true. Here we get rid of this assumptions and suppose we only have access to expert trajectories 
+$$\mathcal{D} = \{ \zeta_m \}_{m=1}^M$$
+where
+$$\zeta = \{ s_0,a_0,s_1,a_1,...,s_T,a_T\}$$
+
+In this case, we no longer has the access to $V^\pi$. Instead, we need to get an estimate of $V$ from a trajectory so that
+
+$$\hat{V}^{\pi^*} \approx V^{\pi^*}$$
+
+Here we use Monte-Carlo estimation. Based on Equation \ref{equ:vpi2}, we can estimate $V^\pi(s)$ by estimating $\boldsymbol{\mu^\pi(s)}$. By Treating $M$ expert trajectories as random (Monte Carlo) samples We have
+
+\begin{equation*}
+\begin{split}
+\boldsymbol{\mu^\pi(s)} & = \mathbb{E}_p[\sum_{t=0}^\infty \gamma^t\boldsymbol{\phi}(s^{(t)})] \\
+& \approx \frac{1}{M} \sum_{m=1}^M \sum_{t=0}^{T_m} \gamma^t\boldsymbol{\phi}(s_m^{(t)})
+\end{split}
+\end{equation*}
+
+Then we get the estimate of value function using trajectories.
+
+The objective function we want to optimize is defined as:
+
+$$\max_\theta \{\hat{V}^{\pi^*}(s) - \hat{V}^{\pi}(s) \}$$
+
+To bound the reward parameter, we add a constraint $|\theta_d| \leq 1, \forall{d}$. To get the other policies, we can use Reinforcement Learning. Then we get the Linear Program formulation for IRL from sampled trajectories scenario.
+
+\begin{equation*}
+\begin{aligned}
+\hat{\theta} = & \arg \max_\theta \{ \sum_{n} \hat{V}^{\pi^*}(s_0) - \hat{V}^{\pi_n}(s_0) \} \\
+& \text{s.t.} \quad |\theta_d| \leq 1 \quad \forall{d}
+\end{aligned}
+\end{equation*}
+
+The whole algorithm is shown as Algorithm \ref{algo:LPIRL}.
+
+\begin{algorithm}[H]
+\caption{LP-IRL$(\pi^{(0)})$}
+\label{algo:LPIRL}
+\begin{algorithmic}[1]
+\FOR{$t = 1,...,T$}
+\STATE $\hat{V}^{\pi^*} = \text{MC-Prediction} (\pi^*,\theta^{(t)})$
+\STATE $\hat{V}^{\pi^t}, \pi^{(t)} = \text{MC-Control} (\pi^{(t-1)},\theta^{(t)})$
+\STATE $\theta^{(t+1)} = \text{LinearProg} (\hat{V}^{\pi^*},\{\hat{V}^{\pi^{(n)}} \}_{n=1}^{t})$
+\ENDFOR 
+\RETURN $\theta$
+\end{algorithmic}
+\end{algorithm}
+
+To conclude, here we have discussed how Inverse Reinforcement Learning can be solved by Linear Programming in different scenarios.
+
+
+  %\section*{References}
+%Include your references here. Please cite any resources you found useful.	
+%Populate the refs.bib file or list your references manually. Be consistent in formatting!
+% \nocite{*}
+{
+\bibliography{refs}
+\bibliographystyle{abbrv}
+}
+
+
+% \section{Appendix}
+
+
+
+
+%This section provides any relevant background material that was not covered in the lectures, but was found to be useful for understanding the material. 
+%For example, derivations, theory underlying techniques employed, etc. 
+
+%Additionally, this section can summarizes applications or extensions of these techniques found in the literature. 
+
+\end{document} % Done!
