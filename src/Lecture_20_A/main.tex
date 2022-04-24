@@ -98,7 +98,7 @@ The approaches we have learned can alternatively be classified into the followin
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.7\textwidth]{model_free_classes.png}
+    \includegraphics[width=0.7\textwidth]{model_free_classes.jpg}
     \caption{Classification of model-free value-based RL approaches taught in class (bold font)}
     \label{fig:model-free}
 \end{figure}
@@ -161,7 +161,7 @@ The methods learned for control in Fig. \ref{fig:model-free} can be reused for t
 
 \begin{itemize}
     \item Replace the value function parameter update with the Q function parameter update (use a function approximator in the process). 
-    \item Do probabilistic behavior sampling instead of deterministic sampling since continuous state spaces require stochastic sampling. More specifically, select a random action with a probability of $\epsilon$ and select an action greedily with a probability of $1-\epsilon$.
+    \item Do probabilistic behavior sampling instead of deterministic sampling since continuous state spaces require sampling. More specifically, select a random action with a probability of $\epsilon$ and select an action greedily with a probability of $1-\epsilon$.
 \end{itemize}
 
 \subsubsection{Monte-Carlo Control for Continuous Spaces}
