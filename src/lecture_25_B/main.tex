@@ -1,0 +1,406 @@
+\documentclass[11pt]{article}
+\usepackage{latexsym}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{epsfig}
+\usepackage{bbm}
+\usepackage[tight]{subfigure}
+\usepackage{algorithm}
+\usepackage{amsmath}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\minimize}{min}
+\DeclareMathOperator*{\maximize}{max}
+
+\usepackage{algorithm}
+ %on linux you may need to run sudo apt-get install texlive-full to install algorithm.sys
+\usepackage{algorithmic}
+\usepackage{algpseudocode}
+
+\usepackage{verbatim}
+
+\newcommand{\handout}[5]{
+  \noindent
+  \begin{center}
+  \framebox{
+    \vbox{
+      \hbox to 5.78in { {#1} \hfill #2 }
+      \vspace{4mm}
+      \hbox to 5.78in { {\Large \hfill #5  \hfill} }
+      \vspace{2mm}
+      \hbox to 5.78in { {\em #3 \hfill #4} }
+    }
+  }
+  \end{center}
+  \vspace*{4mm}
+}
+
+\newcommand{\lecture}[5]{\handout{#1}{#2}{#3}{#4}{#5}}
+\newcommand{\collision}[0]{\mathrm{collision}}
+\newcommand{\nocollision}[0]{\overline{\collision}}
+
+\newcommand*{\QED}{\hfill\ensuremath{\square}}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{observation}[theorem]{Observation}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{claim}[theorem]{Claim}
+\newtheorem{fact}[theorem]{Fact}
+\newtheorem{assumption}[theorem]{Assumption}
+\newtheorem{note}[theorem]{Note}
+
+% 1-inch margins, from fullpage.sty by H.Partl, Version 2, Dec. 15, 1988.
+\topmargin 0pt
+\advance \topmargin by -\headheight
+\advance \topmargin by -\headsep
+\textheight 8.9in
+\oddsidemargin 0pt
+\evensidemargin \oddsidemargin
+\marginparwidth 0.5in
+\textwidth 6.5in
+
+\parindent 0in
+\parskip 1.5ex
+%\renewcommand{\baselinestretch}{1.25}
+
+\begin{document}
+
+\lecture{Statistical Techniques in Robotics (16-831, S22)}{Lecture \#25
+  (Wednesday, April 20)}{Lecturer: Kris Kitani}{Scribes: Xuanbai Chen, Jia Shi}{IRL as Entropy Maximization (Extra Credit)}
+
+\section{Review}
+We are covering the inverse reinforcement learning algorithms in the last several lectures. In the last lecture, we mainly focused on the Max Margin IRL. We will firstly review it.
+
+\subsection{Max Margin IRL}
+
+In this section, we mainly introduce and review the Max-Margin IRL algorithm~\cite{abbeel2004apprenticeship}as a quadratic programming problem for IRL. In this algorithm, it is not guaranteed to recover a true reward function, however, it will find an expert optimal policy. The agent can observe expert behavior from which will attempt to recover the unknown reward. This setting assumes that such reward can be expressed as linear combination of known "features".
+%
+Initially speaking, we can judge the value function of experts optimal one is larger than the estimated one. So it can be concluded as:
+$$V(\pi) \leq V(\pi^*)$$
+%
+Then when assuming a linear reward function, we can express the optimization problem for Max-Margin IRL as:
+\begin{equation}
+    \begin{split}
+    \max_\theta ~t& \quad \text{ where $t$ is a margin variable}\\
+    &\text{s.t. } \boldsymbol{\theta}^T \boldsymbol{\mu}(\pi^\ast) \geq \boldsymbol{\theta}^T \boldsymbol{\mu}(\pi) + t \quad \forall \pi
+    \end{split}
+\end{equation}
+
+Though it is formed well, in this point, there are mainly two problems need to be solved.
+\begin{enumerate}
+    \item No bound on the reward parameters !
+    \item Can’t compare against all policies !
+\end{enumerate}
+
+While for the former problem, we can leverage the regularization method to solve. For the latter, we can leverage reinforcement learning to find most competitive policies. 
+
+By using this approach, the regularized objective thus becomes:
+\begin{equation}
+    \begin{split}
+    \max_\theta ~t& \\
+    &\text{s.t. } \boldsymbol{\theta}^T \boldsymbol{\mu}(\pi^\ast) \geq \boldsymbol{\theta}^T \boldsymbol{\mu}(\pi) + t \quad \forall \pi \\
+    &\quad ~||\boldsymbol{\theta}||_2 \leq 1
+    \end{split}
+\end{equation}
+The last line is a L2 Norm constraint and we can further re-write the objective as a minimization as follows:
+\begin{equation}
+    \label{eq:min_obj_mmirl}
+    \begin{split}
+        \min\limits_{\theta, t} & \quad\lambda ||\boldsymbol\theta||_2 - t \\
+        & \textrm{s.t.} \quad \boldsymbol{\theta}^T(\boldsymbol{\mu}(\pi^\ast) - \boldsymbol{\mu}(\pi)) \geq t \quad \forall \pi_n \in \Pi
+    \end{split}
+\end{equation}
+The last line means that it owns finite set of competitive policies. We can observe that it is similar with the objective function of SVM max-margin classifier:
+\begin{equation}
+    \begin{split}
+        \min\limits_{w, \xi} & ||\boldsymbol{w}||_2 + C\sum\lmits_i \xi_i \\
+        & \textrm{s.t.} \quad y_i (\boldsymbol{w}^T\boldsymbol{x}_i +b) \geq 1 - \xi_i
+    \end{split}
+\end{equation}
+
+After observing the Equation 3 and 4, we can find the IRL can be framed as a max-margin classifier. So similar to SVM, the issue can also be solved by online gradient descent with quadratic programming. We show the Algorithm~\ref{algo:mm_irl} below:
+\begin{algorithm}[H]
+    \label{algo:mm_irl}
+    \caption{Max-Margin IRL ($\mu(\pi^{\ast})$)}
+    \begin{algorithmic}[1]
+    \For{$i=1, \dots n$}
+    \State $\hat{\pi} = \text{argmax}_\pi \boldsymbol{\theta}^{T} \boldsymbol{\mu}(\pi)$ \hfill Competitive policy: Solve RL with linear reward function
+    \State $\boldsymbol{\mu}(\hat{\pi}) = \mathbb{E}_{p_0, \mathcal{T},  \hat{\pi}}\big[\sum\limits_{t=0}^\infty \gamma^{t} \phi(s_t)\big]$ \hfill Compute expected feature counts of competitive policy (MC roll outs)
+    \State $\boldsymbol{\theta} = $ \Call{QuadProg}{$\lambda, \boldsymbol{\mu}(\pi^\ast), \{ \boldsymbol{\mu}(\hat{\pi})\}_{n=1}^i$}
+    \EndFor \\
+    \Return $\boldsymbol{\theta}$
+    \end{algorithmic}
+\end{algorithm}
+
+\subsection{Structured Output Max Margin IRL}
+
+In this section, we will mainly review the Structured Output Max-Margin IRL~\cite{ratliff2006maximum}. 
+%
+Instead of leveraging a margin of 1 for minimization objective derived like Eq. 4 in the Max-Margin IRL algorithm, this algorithm uses the notion of a variable margin, which depends on a distance between policies and formed it as a loss:
+\begin{equation}
+    \label{eq:min_obj_mmp}
+    \begin{split}
+        \min\limits_{\theta, \xi} & \quad\lambda ||\boldsymbol\theta||_2 + \sum\limits_i \xi_i \\
+        & \textrm{s.t.} \quad \boldsymbol{\theta}^T(\boldsymbol{\mu}(\pi^\ast) - \boldsymbol{\mu}(\pi)) \geq l(\pi^\ast, \pi_i) - \xi_i \quad \forall i
+    \end{split}
+\end{equation}
+$l(\pi^\ast, \pi)$ is the variable margin. The intuition is that if the polices are very different, policy values should be very different. Examples of these variable loss are: 1.number of disagreements between policies; 2.physical distance between trajectories resulting from policies.
+
+And after using Max-Margin Planning, the Equation can be changed into below:
+\begin{equation}
+    \label{eq:min_obj_mmp}
+    \begin{split}
+        \min\limits_{\theta} \frac{1}{2}||\boldsymbol{\theta}||_2 
+        + \lambda \sum\limits_d\big\{ (\boldsymbol{\theta}^TF_d + l_d^T)\eta  - 
+        \boldsymbol{\theta}^T F_d \eta_d \big\}
+    \end{split}
+\end{equation}
+where $l(\pi^\ast, \pi_d) = l_d^T \eta^\ast$ is the variable margin for MMP
+(structural loss) and we assume a linear relationship between 
+occupancy (eta) and structural loss vector.
+%
+Therefore, the final objective for MMP is given by:
+\begin{equation}
+    \label{eq:final_min_obj_mmp}
+    \begin{split}
+        \min\limits_{\theta} \frac{1}{2}||\boldsymbol{\theta}||^2
+        + \lambda \sum\limits_d  \big\{ (\boldsymbol{\theta}^TF_d + l_d^T)\eta_d^*  - 
+        \boldsymbol{\theta}^T F_d \eta_d \big\}
+    \end{split}
+\end{equation}
+
+The final two versions of the Max-Margin Planning: MMP-batch and MMP-online are shown below:
+
+\begin{algorithm}[H]
+    \label{algo:mm_planning_batch}
+    \caption{Max-Margin Planning-Batch (\{ F_d, \eta_d, l_d\}_{d=1}^D, \lambda, \alpha, T)}
+    \begin{algorithmic}[1]
+    \State $\boldsymbol\theta \leftarrow 0$
+    \For{$i=1, \dots, T$}
+    \State $\pi_d =$ \Call{RL}{$\boldsymbol\theta^{T} F_d + l_d^T$} $\quad \forall d$
+    \State $\eta_d = $ \Call{CountVisitation}{$(\pi_d)$} $\quad\forall d$
+    \State $g = $ \Call{ComputeSubgrad}{$(\boldsymbol\theta, F_d, l_d, \eta_d)$} $ \quad\forall d$
+    \State $\boldsymbol\theta_n = \boldsymbol\theta_n - \alpha_t \cdot g_n \quad\forall n$
+    \EndFor \\
+    \Return $\boldsymbol\theta$
+    \end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[H]
+    \label{algo:mm_planning_online}
+    \caption{Max-Margin Planning-Online (\{ F_d, \eta_d, l_d\}_{d=1}^D, \lambda, \alpha, T)}
+    \begin{algorithmic}[1]
+    \State $\boldsymbol\theta \leftarrow 0$
+    \For{$i=1, \dots, T$}
+    \State $\pi_d =$ \Call{RL}{$\boldsymbol\theta^{T} F_d + l_d^T$}
+    \State $\eta_d = $ \Call{CountVisitation}{$(\pi_d)$} 
+    \State $g = $ \Call{ComputeSubgrad}{$(\boldsymbol\theta, F_d, l_d, \eta_d)$} 
+    \State $\boldsymbol\theta_n = \boldsymbol\theta_n - \alpha_t \cdot g_n \quad\forall n$
+    \EndFor \\
+    \Return $\boldsymbol\theta$
+    \end{algorithmic}
+\end{algorithm}
+
+
+
+
+\newpage
+\section{Summary}
+
+\subsection{Entropy Maximization IRL}
+
+\subsubsection{Information Entropy}
+
+The Shanon Entropy~\cite{ziebart2008maximum}is defined as following, which is use to measure the randomness of a random variable.
+
+$$
+H(x) = -\sum_x p(x)log p(x)
+$$
+
+If we are trying to estimate a distribution, without any constrain or information, uniform distribution would be a reasonable assumption. 
+
+According to the principle of maximum entropy, given a set of distributions that explain a set of data equally well, the best choice is the one with highest entropy according to Occam's razor. For uniform distribution, all value have the same probability, thus it have high entropy. 
+
+\subsubsection{Problem setup}
+
+We are given a sample of trajectory sampling from prior expert demonstrations with distribution of $\tilde{p}(\zeta)$, and are trying to estimate a distribution $p(\zeta)$ which have close distribution to $\tilde{p}(\zeta)$. 
+
+Since it's infeasible to match all value in those two distributions, we choose to minimize the distance between the expected feature counts, which is a close approximation of the distribution. Thus we can formulate the following constrain 
+
+$$\sum_\zeta p(\zeta)\mu(\zeta)=\sum_{d} \tilde{p}(\zeta_d)\mu(\zeta_d)$$
+
+
+The estimated distribution should also align with the maximum entropy theory. Thus we can maximizing the entropy by minimize the negative entropy(by removing the negative sign in H(x)). The second constrain are 
+
+$$min_p\sum_\zeta p(\zeta)log p(\zeta)$$
+
+Finally, our distribution should under probability constrain that the sum of all possible trajectory sum up to 1. Thus we have
+
+$$\sum_\zeta p(\zeta)=1$$
+
+Formally, we can formula those three constrain in objective function in a Lagrangian form: 
+
+$$
+L(p,\theta,V) =\underbrace{\sum_\zeta p(\zeta)logp(\zeta)}_\text{Shannon Entropy}+\underbrace{\theta^{T}\Bigl\{ \sum_d p_u(\zeta_d)\mu(\zeta_d)-\sum_\zeta p(\zeta)\mu(\zeta) \Bigr\}}_\text{Feature matching}+\underbrace{V\Bigl\{\sum_\zeta p(\zeta-1)\Bigr\}}_\text{Probability constraint}
+$$
+
+This is a constrain optimize problem for which V and $\theta$ are Lagrangian multiplier.
+
+After solving the above function by finding extrema, we can get 
+$$p(\zeta)=\frac{exp(\theta^{T}\mu(\zeta))}{V+1}$$
+
+This is a Boltzmann distribution for which $p(\zeta) \propto exp(\theta^{T}\mu(\zeta))  $, which is the optimal parametric form of the trajectory likelihood to solve the problem.
+
+If we are taking the gradient of the above likelihood respect to the Lagrangian multiplier $\theta$, we have 
+
+$$\nabla L(\theta)=\sum_d p_u(\zeta_d)\mu(\zeta_d)-\sum_\zeta p_\theta(\zeta)\mu(\zeta) \\
+= \bar\mu_d - \bar{\mu}
+$$
+$\bar\mu_d$ and  $\bar{\mu}$ are the expected feature counts of the experts and the learned policy. Then we can use gradient descent to make update
+$$\theta=\theta-\lambda (\bar\mu_d - \bar{\mu})$$
+
+In this cause, $\bar{\mu}$ is an unknown value and we need to compute it by solving an reinforcement learning problem. The pipeline of the algorithm is shown below.
+
+
+\begin{algorithm}[H]
+\caption{MaxEnt IRL $(\lambda,\pi_*)$}
+\label{algo:maxentirl}
+\begin{algorithmic}[1]
+
+\State $\bar\mu_D =CountFeatures(\mathcal{E},\pi^*)$ 
+
+\WHILE{$\nabla L(\theta) \ge \epsilon $}
+    \State $\pi = \hbox{SoftValueIteration}(\mathcal{E}, \theta)$
+    \State $\bar_\mu$ = CountFeatures$(\mathcal{E}, \theta)$ 
+    \State $\theta = \theta - \lambda(\bar\mu_d - \bar{\mu})$
+\ENDWHILE
+
+\end{algorithmic}
+\end{algorithm}
+
+In line 2, we precompute the average faeture count of the expert policy. In line 4, we are estentially solving a maximum entropy RL problem use value iteration to compute the policy. In line 5, we can use the computed policy to interact with environment $\mathcal{E}$ to count the average feature of learned policy. With the learned feature, we can use gradient descent to update the parameter $\theta$
+
+\subsubsection{Activity Forecasting}
+One application of the IRL is the Activity Forecasting. This problem is trying to predict the distribution of pedestrian walking path from one place to another. The algorithm is essential take the pedestrian trajectory as demonstrated activity, and try to learn the reward function of pedestrian. 
+
+Formally, the activity sequence of pedestrian is generated by a MDP, we have 
+$$\zeta={x_0,a_0,r(x_0),x_1,a_1,r(x_1)..x_g,a_g,r(x_g)}$$
+The policy is model by the exponential function depends on the immediate reward and the expected future payoff. The policy determine the sequence above. 
+$$ p(a|x) \propto exp\{\underbrace{r(x)}_\text{ Reward}+\underbrace{\sum_x'p(x'|x,a)V(x')\}}_\text{Expected future payoff}$$
+The V and Q function determine the policy above.
+$$V(x)=softmax_aQ(x,a)$$
+$$Q(x,a)=r(x)+\sum_x'p(x'|x,a)V(x')$$
+
+In the problem setup, the reward function is linear combination of enumerated perception feature weighted by Lagrangian parameter $\theta$. $\phi(s)$ is step-wise state features.
+
+$$r(s)=\theta^{T}\phi(s)$$
+
+With reward function, we can apply it to a new environment to get the value function. With value function, we can obtain a policy the pedestrian is trying to use, and finally the path that the pedestrian is doing to walk can be sample from the policy, which essentially achieve the Activity Forecasting.
+
+
+
+We can try to solve for $\theta$ with maximum entropy IRL method method in the last section.
+
+
+\subsection{Matrix Game IRL}
+In this section, we would like to explore the Matrix Game IRL~\cite{syed2007game}. At first, we would like to recall the value function defined as definition.
+$$V^{\pi}(s) & =  \mathbb{E}_{p,\pi} \left[ \sum_{k=0}^{\infty} \gamma^t r(s_t) \right]$$
+After reviewing that, we will try to prove that $\mathbb{E}[V^{\pi}(s)] \rightarrow V(\pi)$. In order to do that, we can represent the reward function parameterized by $\theta$.
+\begin{equation}
+\begin{split}
+    V^{\pi}(s)
+    & = \mathbb{E}_{p,\pi}[\sum_{t=0}^{\infty} \gamma^t \theta \phi(s_t)] \\
+    & = \boldsymbol{\theta} \cdot \mathbb{E}_{p,\pi}[\sum_{t=0}^{\infty} \gamma^t \phi(s_t)] \\
+    & = \boldsymbol{\theta} \cdot \boldsymbol{\mu^{\pi}(s)}.
+\end{split}
+\end{equation}
+Now we want to get the an estimate of $V^{\pi}$ from a trajectory, hence the expectation over the trajectory. The expectation also include initial state distribution
+\begin{equation}
+\begin{split}
+    \mathbb{E}_{V^{\pi}(s)}
+    & = \mathbb{E}[\sum_{t=0}^{\infty} \gamma^t \theta \phi(s_t)] \\
+    & = \boldsymbol{\theta} \cdot \mathbb{E}[\sum_{t=0}^{\infty} \gamma^t \phi(s_t)] \\
+    & = \boldsymbol{\theta} \cdot \boldsymbol{\mu(\pi)}.
+\end{split}
+\end{equation}
+After rewriting the value of our expert policy to be better than any other policy, we can acquire this below:
+\begin{equation}
+    \boldsymbol{\theta} \cdot \boldsymbol{\mu(\pi)^*} \geq \boldsymbol{\theta} \cdot \boldsymbol{\mu(\pi)}.
+\end{equation}
+
+We always want to achieve the largest difference by comparing different policies, which will appear between the expert policy and other policies. In this time, we can write it as a minimum over the whole function with a maximum expected value of the next best policy:
+
+\begin{equation}
+    \minimize_{\theta}\{\maximize_{\pi} \boldsymbol{\theta} \cdot \mu(\pi) - \boldsymbol{\theta} \cdot \mu(\pi_E)\}.
+\end{equation}
+
+We can drag the parameter vector $\boldsymbol{\theta}$ out and make the transpose of it to get the following simplified expression, 
+
+\begin{equation}
+    \minimize_{\theta}\{\maximize_{\pi} \boldsymbol{\theta^{\top}} (\mu(\pi) - \mu(\pi_E))\}.
+\end{equation}
+
+And then, we would like to form it by leveraging an alternative Interpretation: Vector of expected cumulative features written as matrix multiplication (Row Player, Game Matrix, and Column Player).
+
+\begin{equation}
+    \minimize_{\theta}\{\maximize_{\pi} \boldsymbol{\theta^{\top}} \boldsymbol{G} \boldsymbol{\psi}\}.
+\end{equation}
+
+
+This notation reveals that IRL is a two player game where $\boldsymbol{G}$ specifies the game and records the differences between policies, $\boldsymbol{\theta}$ specifies the row player, and $\boldsymbol{\psi}$ specifies a column player.
+%
+After knowing that Matrix Game IRL can be represented as the two player game and it can be solved by the following two algorithms below:
+
+
+\begin{algorithm}[H]
+    \label{algo:mw_matrix_game}
+    \caption{MW-MatrixGame (\beta)}
+    \begin{algorithmic}[1]
+    \State $\boldsymbol{w}^{(0)} \leftarrow \{ w_r^{(0)} = 1\}$
+    \For{$t=1, \dots, T$}
+    \State $R^{(t)} = \frac{\boldsymbol{w}^{(t-1)}}{\sum_r w_r^{(t-1)}}$ \hfill row player 
+strategy
+    \State \Call{Receive}{$\boldsymbol{l}^{(t)} = \boldsymbol{\text{G}}(\cdot, \boldsymbol{c}^{(t)})$} \hfill Expected loss of game
+    \State $w_r^{(t)} = w_r^{(t-1)} \beta^{l_r^{(t)}} \quad \forall r$ \hfill update row 
+player strategy
+    \EndFor \\
+    \Return $\boldsymbol{\theta}$
+    \end{algorithmic}
+\end{algorithm}
+
+Observed from this algorithm, the third line describe the row player strategy; the fourth line shows the expected loss of game and game matrix and the column player strategy; the fifth line updates the row player strategy.
+%
+When observing this algorithm, we can find that there is an exponential gradient descent in the fifth line. In this way, we can convert it to the Multiplicative Weights IRL Algorithm below.
+
+\begin{algorithm}[H]
+    \label{algo:mw_irl}
+    \caption{Multiplicative Weights IRL ($\hat{\pi}_E, \hat{\mu}_E, \beta$)}
+    \begin{algorithmic}[1]
+    \For{$t=1, \dots, T$}
+    \State $\theta_i = \frac{\theta_i}{\sum_{i^{'}} \theta_{i^{'}}} \quad \forall i$
+    \State $\hat{\pi}_\theta = $ RL($r(\cdot; \boldsymbol{\theta})$)
+    \State $\hat{\mu} = $ Estimate($\pi_\theta$)
+    \State $\theta_i = \theta_i \cdot \exp{\{\ln{\beta \cdot G_i(\hat{\mu_i})}\}} \quad \forall i$
+    \EndFor \\
+    %\Return $\boldsymbol{\theta}$
+    \end{algorithmic}
+\end{algorithm}
+
+We update our weights using line 2, use RL over our reward parameter to calculate some optimal policy $\hat{\pi}$ in line 3, use the optimal policy to calculate the expected feature count $\hat{\mu}$ in line 4, before updating with exponentiated gradient descent. Lines 3 and 4 can be understood as a 'prediction step' where the actual game is played.
+
+{
+\bibliography{refs}
+\bibliographystyle{abbrv}
+}
+
+%\newpage
+%\section{Appendix}
+
+\end{document} % Done!
+
+
