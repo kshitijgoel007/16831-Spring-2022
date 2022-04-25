@@ -1,0 +1,471 @@
+\documentclass[11pt]{article}
+\usepackage{latexsym}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{epsfig}
+\usepackage{subfig}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{booktabs}
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+\usepackage{bm}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=blue,
+}
+%\usepackage{fontspec}
+% \setmainfont{Comic Sans MS}
+
+
+\usepackage{amsmath}
+
+\DeclareMathOperator*{\minimize}{min}
+\DeclareMathOperator*{\maximize}{max}
+
+\usepackage{algorithm}
+ %on linux you may need to run sudo apt-get install texlive-full to install algorithm.sys
+\usepackage{algorithmic}
+
+\usepackage{verbatim}
+
+\newcommand{\handout}[5]{
+  \noindent
+  \begin{center}
+  \framebox{
+    \vbox{
+      \hbox to 5.78in { {#1} \hfill #2 }
+      \vspace{4mm}
+      \hbox to 5.78in { {\Large \hfill #5  \hfill} }
+      \vspace{2mm}
+      \hbox to 5.78in { {\em #3 \hfill #4} }
+    }
+  }
+  \end{center}
+  \vspace*{4mm}
+}
+
+\newcommand{\lecture}[5]{\handout{#1}{#2}{#3}{#4}{#5}}
+\newcommand{\collision}[0]{\mathrm{collision}}
+\newcommand{\nocollision}[0]{\overline{\collision}}
+
+\newcommand*{\QED}{\hfill\ensuremath{\square}}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{observation}[theorem]{Observation}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{claim}[theorem]{Claim}
+\newtheorem{fact}[theorem]{Fact}
+\newtheorem{assumption}[theorem]{Assumption}
+\newtheorem{note}[theorem]{Note}
+
+% 1-inch margins, from fullpage.sty by H.Partl, Version 2, Dec. 15, 1988.
+\topmargin 0pt
+\advance \topmargin by -\headheight
+\advance \topmargin by -\headsep
+\textheight 8.9in
+\oddsidemargin 0pt
+\evensidemargin \oddsidemargin
+\marginparwidth 0.5in
+\textwidth 6.5in
+
+\parindent 0in
+\parskip 1.5ex
+%\renewcommand{\baselinestretch}{1.25}
+
+\begin{document}
+
+\lecture{Statistical Techniques in Robotics (16-831, S22)}{Lecture \#24
+  (Monday, April 21)}{Lecturer: Kris Kitani}{Scribes: Rishabh Pahuja, Sarthak Shetty}{Inverse Reinforcement Learning}
+
+\section{Review}
+In the last few lectures, we studied about different reinforcement algorithms to find the optimum policy for the agent to follow. Some of the algorithms that we learnt were, value based iteration, policy based iteration, Q-learning, and so on. Even though reinforcement learning is theoretically effective, it takes a lot of time for the agent to learn a policy. For faster learning, we can learn from demonstrations (such as humans or other experts). This field of reinforcement learning is known as \textbf{Imitation Learning (IL)}. The agent learns the policy by demonstration from an expert. Imitation learning can be classified into three main types: 1. Passive IL, 2. Active IL, 3. Interactive IL. Table \ref{table:typesIL} gives the details about each kind of imitation learning. 
+
+\begin{table}[h]
+    
+      \caption{\textbf{Types of Imitation Learning}}
+      \centering
+    \begin{tabular}{c c c c } 
+  \toprule
+    \textbf{         }  & \textbf{Passive IL}     & \textbf{Active IL} & \textbf{Interactive IL} \\
+    \midrule
+    \textbf{Demonstrations} $\mathcal{D}$    & yes & yes & optional    \\
+    \textbf{Environment} $\mathcal{E}$    & no & yes & yes    \\
+    \textbf{Oracle} $\pi$    & no & no & yes    \\
+    \textbf{Dynamics} $\mathcal{T}$    & no & optional & optional    \\
+    \textbf{Reward} $\mathcal{R}$    & no & optional & optional    \\
+    \midrule
+    \bottomrule
+  \end{tabular}
+  \label{table:typesIL}
+\end{table}
+
+\subsection{Passive Imitation Learning}
+
+In passive IL, the agent has access to the demonstration given by the expert but does not carry out any actions, since it does not have acces to the environment. From the demonstrations it estimates the best policy which it then leverages in a given environment.
+
+\subsection{Active Imitation Learning}
+
+In active IL, the agent has access to not only to the demonstration given by the expert but also to the environment. The access to the environment allows the agent to test the policy and reward function being learnt in real time.
+
+\subsection{Interactive Imitation Learning}
+
+In interactive imitation learning, the agent can actively query the best policy or the "oracle" in order to improve the policy that it is learning. However, the agent may or may not have access to the dynamics. Since the agent has access to the environment, it can estimate its performance and receive regular feedback from the oracle.
+
+
+In this lecture we further look at inverse reinforcement learning which is a type of active imitation learning where we try to estimate the best policy and the reward function. The advantage of estimating the reward function is that there is better generalisation; here, we try to understand the intent of taking a specific action, rather than following a given policy. Once, the reward function is learnt, it can then be transferred to generate new trajectories in a given environment. In the previous lecture we also saw how to formulate the Linear Programming - Inverse Reinforcement Learning problem. 
+
+\section{Lecture Summary}
+
+\subsection{Variations of IRL Objectives}
+
+\textbf{1. Q funtion:} In this variation, Q function is used to find the optimal policy and the action corresponding to that state shall be the best action. This means that the Q value function shall be greatest for that particular action as compared to all other actions in that state:
+
+\begin{equation}
+\mathbf{Q^\pi(s,a^*)\geq Q^\pi (s,a)}
+\end{equation}
+
+\textbf{2. Future payoff:} In this variation, the linear approximation of the reward function is used to find the best action. This is particularly useful in large state spaces:
+
+\begin{equation}
+\mathbf{\sum_{s'}P(s'|s,a^*)V^\pi(s')\geq \sum_{s'}P(s'|s,a)V^\pi(s')}
+\end{equation}
+
+\textbf{3. Value function:} In this variant, the value function of optimal policy is compared with the value function of other policies:
+
+\begin{equation}
+\matbf{\hat{V}^{\pi^*}(s)\geq \hat{V}^\pi(s)}
+\end{equation}
+
+For today's lecture, we will be focusing on \textbf{Policy Value}:
+
+\begin{equation}
+\mathbf{E[V^{\pi^*}(s)]\geq E[V^\pi(s)]}
+\end{equation}
+
+The short hand notation for the same can be used as:
+
+\begin{equation}
+\mathbf{V^{\pi^*}(s)\geq V^\pi(s)}
+\end{equation}
+
+\subsection{Policy Value}
+
+\begin{equation}
+\mathbf{E[V(\pi)]=E_p[\sum_{t=0}^\infty}\gamma^tr(s_t)]
+\end{equation} (assume a linear reward function)
+
+\begin{equation}
+\mathbf{V(\pi)=E_p[\sum_{t=0}^\infty\gamma^t\theta.\phi(s_t)]}
+\end{equation}
+(pull out reward parameter vector)
+
+\begin{equation}
+\mathbf{V(\pi)=\theta.E[\sum_{t=0}^\infty\gamma^t\phi(s_t)]}
+\end{equation}
+
+\begin{equation}
+\mathbf{V(\pi)=\theta.\mu(\pi)}
+\end{equation}
+
+$\phi(s_t)$ indicates the probabilities of set of features, for e.g. people in a particular state in a parking lot on grass, near a car, parking area, etc. $\theta$ includes the parameters and $\mu(\pi)$ includes expected features calculated over all possibles trajectories over all possible states and that is one of the reasons why $\mu$ is represented as a function of $\pi$ and not as a function of states.
+
+The p in $E_p$ includes the probability of a particular trajectory along with prior state distribution.
+
+\section{Objective Function for IRL}
+
+We refer to the \cite{abbeel2004apprenticeship} paper for much of this section.
+
+Let there be two policies such that a trajectory is sampled from optimal policy and a trajectory is sampled from some other policy such that:
+
+\begin{equation}
+\zeta^* \sim \pi^* \textit{ and } \zeta \sim \pi
+\end{equation}
+
+where $\pi^*$ indicates the optimal policy. Therefore:
+
+\begin{equation}
+\mathbf{V(\pi^*)\geq V(\pi)}
+\end{equation}
+
+\begin{equation}
+\mathbf{\theta.\mu(\pi^*)\geq \theta\cdot\mu(\pi)}
+\end{equation}
+
+(Since, we assume that the reward function is linear)
+
+
+Lets introduce a margin variable called t, such that:
+
+
+\begin{equation}\label{eq:margin}
+    \mathbf{\theta^T\mu(\pi^*)\geq \theta^T\mu(\pi)+t} \texttt{ }\forall \pi
+\end{equation}
+
+
+Eq. \ref{eq:margin} in this form has the following problems:
+\begin{enumerate}
+    \item  No bound on the reward parameters, so by scaling $\theta$, the inequality can be made arbitrarily large.
+    \item All policies cannot be compared, therefore, it is difficult to find the optimal policy
+\end{enumerate}
+
+These problems can be tackled by:
+\begin{enumerate}
+\item Regularizing parameters
+\item Use reinforcement learning to find most competitive policies
+\end{enumerate}
+
+\subsection{Regularization}
+
+The Eq. \ref{eq:margin} can be modified such that:
+
+\begin{equation}
+\mathbf{\theta^T.\mu(\pi^*)\geq \theta^T\mu(\pi)+t} \texttt{ }\forall \pi
+\end{equation}
+
+\begin{equation}
+\mathbf{||\theta||_2\leq1}
+\end{equation}
+
+\begin{equation}
+min_{\theta,t} \lambda||\theta||_2 - t
+\end{equation}
+
+Such that\\
+\begin{equation}\label{eq:refCompetitive}  
+\theta^T(\mu(\pi^*)-\mu(\pi_n))\geq t \texttt{ } \forall \pi_n \in \Pi
+\end{equation}
+where $\Pi$ is a finite set of competitive policies 
+
+Equation \ref{eq:refCompetitive}. looks very similar to the equations of SVM (Support Vector Machine). The equations for soft SVM and Max-margin IRL (MM IRL) side to side can be seen as:
+
+\subsubsection{Soft SVM}\\
+\begin{equation}
+min_{w, \xi}||w||^2 + C \sum_i\xi_i
+\end{equation}
+
+Such that:
+\begin{equation}
+y_i(w^Tx_i+b)\geq 1-\xi_i
+\end{equation}
+
+
+\subsection{Max Margin Inverse Reinforcement Learning}
+
+\begin{equation}
+\text{max}_\theta\texttt{ }t
+\end{equation}
+
+Such that:
+
+\begin{equation}
+\theta^T\mu(\pi^*)\geq \theta^T\mu(\pi)+t \texttt{ } \forall \pi
+\end{equation}
+
+\begin{equation}
+||\theta||_2 \leq 1
+\end{equation}
+
+Converting equations to 'SVM-like':
+
+\begin{equation}
+max_\theta \textt{ }t
+\end{equation}
+Such that:
+
+\begin{equation}
+\theta^T\mu(\pi^*)\geq \theta^T\mu(\pi)+t  \forall \pi
+\end{equation}
+\begin{equation}
+||\theta||_2 \leq 1
+\end{equation}
+
+\begin{equation}
+min_\theta \lambda||\theta||_2 + \sum_i \xi_i
+\end{equation}
+
+Such that:
+
+\begin{equation}
+\theta^T(\mu (\pi^*)-\mu(\pi_i))\geq (1-\xi_i) \texttt{ } \forall i 
+\end{equation}
+
+
+(Replacing $t_i$ by (1- $\xi_i$)
+% $max_\theta t$\\
+% s.t.\\
+% $\theta^T\mu(\pi^*)\geq \theta^T\mu(\pi)+t$  $\forall \pi$\\
+% $||\theta||_2 \geq 1$\\
+% \\
+% Converting equations to 'SVM-like':\\
+% $max_\theta t$\\
+% s.t.\\
+% $\theta^T\mu(\pi^*)\geq \theta^T\mu(\pi)+t$  $\forall \pi$\\
+% $||\theta||_2 \leq 1$\\
+% $min_\theta \lambda||\theta||_2 + \sum_i \xi_i$\\
+% s.t.\\
+% $\theta^T(\mu (\pi^*)-\mu(\pi_i))\geq (1-\xi_i)$ $\forall i$\\ (Replacing $t_i$ by (1-)
+
+We borrow the math and algorithms from \cite{bagnell2006maximum} for this section.
+
+Now, we can put together the function of the Max Margin Inverse RL problem as follow:
+
+\begin{algorithm}[H]
+\caption{\textbf{function} MaxMarginIRL $\mu(\pi^*$)}
+\label{algo:MaxMarginIRL}
+\begin{algorithmic}[1]
+\FOR{$t=1,\;\cdots,\;T$}
+\STATE $\hat{\pi} = argmax_{\pi} \theta^{T} \mu (\pi) $ \hfill 
+\STATE $\mu (\hat{\pi_{i}}) = \mathbb{E}_{p_0, \tau, \hat{\pi}}{[\sum_{t=0}^{\infty}\gamma^{t}\phi(s_t)]}$ \hfill 
+\STATE $\theta = QuadProg(\lambda, \mu(\pi^*), \{\mu(\hat{\pi_n)}\}_{n=1}^{i})$
+\ENDFOR\textbf{ } Return $\theta$
+\end{algorithmic}
+\end{algorithm}
+
+In Algo. \ref{algo:MaxMarginIRL}, line 3 is of the ways to write the reinforcement learning objective, with the assumption to that the reward function is linearized. Line 4, is the expected feature counts for the competitive policy. Line 5 can be an SVM or even subsituted with a gradient descent algorithm. $\mu(\pi^{*})$ is computed from the expert trajectories, whereas $\mu(\hat{\pi_n})$ is computed from the competitive policies.
+
+\subsection{Structured Large Margin Criteria}
+Recall that in an earlier lecture we prove that the Policy Value is linear in features. Here we quickly go through some of the math from that proof:
+
+\begin{equation}
+    V(\pi) = \mathbb{E}_p[\sum_{t=0}^{\infty}\gamma^t r(s_t)]
+\end{equation}
+
+We pull out the reward parameter vector:
+
+\begin{equation}
+    V(\pi) = \mathbb{E}_p[\sum_{t=0}^{\infty}\gamma^t \theta \cdot \phi(s_t)]
+\end{equation}
+
+\begin{equation}
+    V(\pi) =  \theta \cdot \mathbb{E}_p[\sum_{t=0}^{\infty}\gamma^t \cdot \phi(s_t)]
+\end{equation}
+
+\begin{equation}
+    V(\pi) =  \theta \cdot \mu(\pi)
+\label{eq:thetaPi}
+\end{equation}
+
+Let's now assume that we have trajectories drawn from some $\zeta^*$ trajectories that are being sampled from an expert policy denoted by $\pi^*$. We also have a regular policy $\pi$ from which we are sampling trajectories denoted by $\zeta$. We can represent the value function from these two policies as:
+
+\begin{equation}
+    V(\pi^*) \geq V(\pi)
+\end{equation}
+
+From the proof derived in Eq. \ref{eq:thetaPi}, we can write the value function in terms of parameters and expected policy features as:
+
+\begin{equation}
+    \theta \cdot \mu(\pi^*) \geq \theta \cdot \mu(\pi)
+\end{equation}
+
+We can now re-write the optimization problem that we saw earlier as:
+
+\begin{equation}
+    min_{\theta, \xi} \texttt{ } \lambda ||\theta||_{2}^2 + \sum_{i} \xi_{i}
+\end{equation}
+
+such that,
+
+\begin{equation}
+    \theta^T(\mu(\pi^*) - \mu(\pi_i)) \geq (1 - \xi_i) \texttt{ }\forall i
+\label{eq:marginSlack}\end{equation}
+
+Here $\xi_i$ represent the slack, whereas the 1 is the margin, and is derived from convention.
+
+We now ask if this 1 changes if the properties of the policy are changed, and if we can encode additional structure into the optimization problem if we can change this 1.
+
+We now change this margin 1 into a function that takes into consideration the distance between the expert policy and the policy that we are using right now. We call this function a 'variable margin' and represent it as:
+
+\begin{equation}
+    l(\pi^*, \pi_i)
+\end{equation}
+
+Substituting this variable margin function back into our Eq. \ref{eq:marginSlack} we now get:
+
+\begin{equation}
+    \theta^T(\mu(\pi^*) - \mu(\pi_i)) \geq (l((\pi^*, \pi_i) - \xi_i) \texttt{ }\forall i
+\label{eq:newMarginSlack}\end{equation}
+
+The intuition behind introducing this criteria is:
+
+\begin{enumerate}
+    \item In the case of a discrete policy (for example, a policy operating in grid world), this function will look at the number of disagreements between the expert policy and the policy that we are evaluating.
+    \item If this policy is continuous then we look at the physical distance between the trajectories that result from the two policies.
+\end{enumerate}
+ 
+Therefore, with this criteria, we are injecting some additional inductive biases and structure into the optimization problem.
+
+Some notation before we move to the next section:
+
+\begin{enumerate}
+    \item \textbf{Feature Count} is represented as $\mu \in \mathbb{R}^N$. For example, we can represent the total counts resulting from a policy as $\mu(\pi)$ or the total counts resulting from a trajectory as $\mu(\zeta)$.
+    \item We represent the \textbf{Feature Map} as $\mathbb{F} \in \mathbb{R}^{N x |S||A|}$. This is a matrix that holds all the state features for all possible state-action pairs.
+    \item \textbf{Occupancy Measure} is represented as $\eta \in \mathbb{R}^{|S||A|}$. It represents the 'visitation count' or the number times a given state-action pair is invoked during a given episode, while a particular policy is being followed.
+\end{enumerate}
+
+We can now establish a relationship between the cumulative feature count $\mu$ and the occupancy measure $\eta$ as:
+
+\begin{equation}
+    \mu = F \eta
+\end{equation}
+
+We now modify the objective function that we derived in Eq. \ref{eq:newMarginSlack} and receive:
+
+\begin{equation}
+    min_{\theta} \texttt{ } \dfrac{1}{2}||\theta||^2 + \lambda \sum_{d}\{(\theta^T F_d + l_d^T)\eta - \theta^T F_d \eta_d\}
+\label{eq:newNewMarginSlack}\end{equation}
+
+In Eq. \ref{eq:newNewMarginSlack}. $\theta$ are the reward parameters. The first term represents regularization. We are summing over $d$ expert demonstrations. The term $\theta^T F_d \eta_d$ represents the value function of an expert demonstrator. The first term inside the summation represents a policy as well. Here, $\eta^*_d$ represents the occupancy vector contains the distribution of the sate-action pairs, that we receive after running the optimal policy (which we receive by running RL). 
+
+This $\eta^*_d$ gets multiplied with $\theta^T F_d$. We also have the variable margin $l^T_d$. We make the assumption here that this $l^T_d$ has a linear relationship with the occupancy $\eta^*$.
+
+The expression in Eq. \ref{eq:newNewMarginSlack}. is very similar to the SVM hinge loss, with a regularization term and a linear constraint. The SVM hinge loss was represented as:
+
+\begin{equation}
+    min_w \texttt{ }(\dfrac{\lambda}{2}||w||^2 + \dfrac{1}{M}\sum_{m=1}^{M}max\{0, 1 - y_m w^T x_m\})
+\label{eq:SVMHingeLoss}\end{equation}
+
+We solve this Eq. \ref{eq:SVMHingeLoss} using online sub-gradient descent:
+
+\begin{equation}
+    g = \dfrac{\partial L}{\partial \theta} = \theta + \dfrac{\lambda}{D}\sum_d \beta_d F_d (\eta^*_d - \eta_d)
+\end{equation}
+
+\section{Conclusion}
+
+In this lecture, we explored some key-concepts in Inverse Reinforcement Learning, specifically in the domain of imitation learning. We saw how we can frame Policy-Value Objective Function as a max margin classification, which can be solved as a online gradient descent problem, by the introduction of a quadratic regularization term on the reward parameters and a loss term. We also showed how such problems can also be solved using quadratic programming. In the lecture, we also saw how the max-margin planning was one of the first such algorithm to be applied to real world robots.
+
+\textbf{Note}: We referred to the previous years' scribe notes while preparing this document, including \cite{Navaro2021} and \cite{Kai2021}.
+
+\section{Appendix}
+We went through a few papers as well in order to better understand how imitation learning and learning from demonstrations actually works. We are linking a few of them here along with a one-line description that readers might find helpful.
+
+\begin{enumerate}
+    \item \textbf{Robotic Telekinesis: Learning a Robotic Hand Imitator by Watching Humans on YouTube}, Sivakumar et al. (R:SS 2022) - In this paper the authors developed a system where a human can simply teleoperate a robot by demonstrating the actions with their own hands. The system learns to do so by analyzing videos of human hand videos.  \cite{telekinesis}
+    \item \textbf{A System for General In-Hand Object Re-Orientation}, Chen et al. (CoRL 2021) -  In this paper, the authors incorporate teacher-student learning with a gravity curriculum to learn complex in-hand reorientation of common household objects\cite{chen2022}
+    \item \textbf{Replacing Rewards with Examples: Example-Based Policy Search via Recursive Classification}, Eysenbach et al. (ICRA 2021) - This paper doesn't deal with learning from demonstrations exactly, but is a reinforcement learning problem where the model frames reward functions as successful examples of the task that the agent is trying to learn. \cite{eysenbach2021}
+\end{enumerate}
+%\section*{References}
+%Include your references here. Please cite any resources you found useful.	
+%Populate the refs.bib file or list your references manually. Be consistent in formatting!
+{
+\bibliography{refs}
+\bibliographystyle{abbrv}
+}
+
+%\section{Appendix}
+%This section provides any relevant background material that was not covered in the lectures, but was found to be useful for understanding the material. 
+%For example, derivations, theory underlying techniques employed, etc. 
+
+%Additionally, this section can summarizes applications or extensions of these techniques found in the literature. 
+
+\end{document} % Done!
